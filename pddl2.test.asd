@@ -16,7 +16,8 @@
   :description "Test system of pddl2"
   :license "LLGPL"
   :depends-on (:pddl2
-               :fiveam)
+               :fiveam
+               :split-sequence)
   :components ((:module "t"
                 :components
                 ((:file "package"))))
