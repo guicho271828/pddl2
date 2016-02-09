@@ -7,5 +7,9 @@
 (defpackage :pddl2.impl
   (:use :cl :trivia :alexandria :iterate
         :lisp-namespace)
-  (:export :read-pddl))
+  (:export :read-pddl
+           :define
+           :domain
+           :problem
+           :object))
 
