@@ -30,4 +30,4 @@
                  (:file "1.read-file")
                  (:file "2.domain"))))
   :description "Simpler PDDL (Planning Domain Description Language) parser in CL"
-  :in-order-to ((test-op (load-op :pddl2.test))))
+  :in-order-to ((test-op (test-op :pddl2.test))))
