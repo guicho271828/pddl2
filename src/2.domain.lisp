@@ -37,13 +37,14 @@
         *actions*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
-    (print (list
-            *types*
-            *objects*
-            *predicates*
-            *functions*
-            *axioms*
-            *actions*))))
+    (let ((*print-length* 100))
+      (print (list
+              *types*
+              *objects*
+              *predicates*
+              *functions*
+              *axioms*
+              *actions*)))))
 
 ;;; requirement
 
@@ -66,11 +67,10 @@
         (iter (for type in (remove 'object (mapcar #'first *types*)))
               (collect `(,type object)))))
 
-(defun parse-typed-list (body &optional check-variable)
+(defun parse-typed-list (body &optional check-variable (default 'object))
   (let (acc tmp)
     (iter (generate token in body)
           (next token)
-          (check-type token (and symbol (not null)))
           (if (eq '- token)
               (let ((super (next token)))
                 (check-type super (and symbol (not null)))
@@ -85,41 +85,44 @@
                 (push token tmp)))
           (finally
            (iter (for type in tmp)
-                 (push (cons type 'object) acc)
+                 (push (cons type default) acc)
                  #+nil
-                 (push 'object (getf acc type)))))
+                 (push default (getf acc type)))))
     acc))
 
 (defun collect-indirect-type-relationship (alist)
-  (let* ((types (remove-duplicates (cons 'object (mapcar #'car alist))))
-         (len (length types))
-         (a (make-array (list len len) :element-type 'boolean :initial-element nil)))
-    (iter (for (type . super) in alist)
-          (unless (aref a
-                        (position type types)
-                        (position super types))
-            (setf (aref a
-                        (position type types)
-                        (position super types))
-                  t)))
-    (iter (with flag = nil)
-          (iter (for i below len)
-                (iter (for j below len)
-                      (iter (for k below len)
-                            (when (and (aref a i j) (aref a j k)
-                                       (not (aref a i k)))
-                              (setf (aref a i k) t
-                                    flag t)))))
-          (while flag)
-          (setf flag nil))
-    (iter (for type in (remove 'object types))
-          (for i = (position type types))
-          (collect (cons type
-                         (remove
-                          'object
-                          (iter (for j from 0 below len)
-                                (when (aref a i j)
-                                  (collect (elt types j))))))))))
+  (step
+   (let* ((types (remove-duplicates (cons 'object (mapcar #'car alist))))
+          (len (length types))
+          (a (make-array (list len len) :element-type 'boolean :initial-element nil)))
+     (iter (for (type . super) in alist)
+           (assert (position type types))
+           (assert (position super types))
+           (unless (aref a
+                         (position type types)
+                         (position super types))
+             (setf (aref a
+                         (position type types)
+                         (position super types))
+                   t)))
+     (iter (with flag = nil)
+           (iter (for i below len)
+                 (iter (for j below len)
+                       (iter (for k below len)
+                             (when (and (aref a i j) (aref a j k)
+                                        (not (aref a i k)))
+                               (setf (aref a i k) t
+                                     flag t)))))
+           (while flag)
+           (setf flag nil))
+     (iter (for type in (remove 'object types))
+           (for i = (position type types))
+           (collect (cons type
+                          (remove
+                           'object
+                           (iter (for j from 0 below len)
+                                 (when (aref a i j)
+                                   (collect (elt types j)))))))))))
 
 ;;; constants
 
@@ -145,17 +148,17 @@
   (assert (null *functions*))
   (setf *functions*
         (mapcar (lambda-ematch
-                  ((list* name args)
+                  ((cons (list* name args) 'number)
                    (cons name (mapcar #'cdr (parse-typed-list args t)))))
-                body)))
+                (parse-typed-list body nil 'number))))
 
 (defmethod process-clause ((clause (eql :fluents)) body)
   (assert (null *functions*))
   (setf *functions*
         (mapcar (lambda-ematch
-                  ((list* name args)
+                  ((cons (list* name args) 'number)
                    (cons name (mapcar #'cdr (parse-typed-list args t)))))
-                body)))
+                (parse-typed-list body nil 'number))))
 
 ;;; actions
 
