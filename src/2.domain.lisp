@@ -71,8 +71,6 @@
     (iter (generate token in body)
           (next token)
           (check-type token (and symbol (not null)))
-          (when check-variable
-            (assert (char= #\? (aref (symbol-name token) 0))))
           (if (eq '- token)
               (let ((super (next token)))
                 (check-type super (and symbol (not null)))
@@ -81,7 +79,10 @@
                       #+nil
                       (push super (getf acc type)))
                 (setf tmp nil))
-              (push token tmp))
+              (progn
+                (when check-variable
+                  (assert (char= #\? (aref (symbol-name token) 0))))
+                (push token tmp)))
           (finally
            (iter (for type in tmp)
                  (push (cons type 'object) acc)
