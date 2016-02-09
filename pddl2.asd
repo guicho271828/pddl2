@@ -22,9 +22,12 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:trivia :alexandria :iterate)
+  :depends-on (:trivia :alexandria :iterate :lisp-namespace)
   :components ((:module "src"
                 :components
-                ((:file "0.package"))))
+                ((:file "0.package")
+                 (:file "1.utility")
+                 (:file "1.read-file")
+                 (:file "2.domain"))))
   :description "Simpler PDDL (Planning Domain Description Language) parser in CL"
   :in-order-to ((test-op (load-op :pddl2.test))))
