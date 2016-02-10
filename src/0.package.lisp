@@ -15,5 +15,9 @@
            :UNBOUND-PROBLEM
            :UNBOUND-DOMAIN
            :minimize
-           :total-cost))
+           :total-cost
+           :SYMBOL-DOMAIN
+           :DOMAIN-BOUNDP
+           :SYMBOL-PROBLEM
+           :PROBLEM-BOUNDP))
 
