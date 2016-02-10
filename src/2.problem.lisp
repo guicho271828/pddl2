@@ -182,6 +182,11 @@
                             (type-precond (type-predicates params)))
                        (canonicalize-action params `(and ,@type-precond ,precond) eff)))))
 
+(defmethod process-clause ((clause (eql :metric)) body)
+  (assert (match body
+            ((list 'minimize (list 'total-cost)) t))
+          nil
+          "We do not support costs other than total-cost!"))
 
 #+nil
 (defmethod process-clause ((clause (eql :requirements)) body)
