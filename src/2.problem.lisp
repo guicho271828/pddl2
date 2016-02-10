@@ -30,6 +30,7 @@
         *ground-functions*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
+    ;; grounding actions, axioms and functions
     (let ((*print-length* 8))
       (print (list
               *init*
@@ -38,7 +39,7 @@
               *ground-actions*
               *ground-axioms*
               *ground-functions*)))))
-
+;;; process clauses
 (defmethod process-clause ((clause (eql :domain)) body)
   (ematch body
     ((list domain-name)
@@ -58,7 +59,7 @@
 
 (defmethod process-clause ((clause (eql :init)) body)
   (setf (values *init* *ground-functions*)
-        (let ((body (append (untype-parameters *objects*) body)))
+        (let ((body (append (types-as-predicates *objects*) body)))
           (values (remove '= body :key #'first)
                   (mapcar #'cdr
                           (remove '= body :key #'first :test (complement #'eq))))))
@@ -68,7 +69,7 @@
                 nil
                 "object fluents in ~a !" gf)))
 
-(defun untype-parameters (params)
+(defun types-as-predicates (params)
   (iter outer
         (for (p . type) in params)
         (for types = (assoc type *types*))
@@ -188,6 +189,3 @@
           nil
           "We do not support costs other than 'minimize' and 'total-cost'! : ~a" body))
 
-#+nil
-(defmethod process-clause ((clause (eql :requirements)) body)
-  )
