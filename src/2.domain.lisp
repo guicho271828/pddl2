@@ -92,38 +92,46 @@
     acc))
 
 (defun collect-indirect-type-relationship (alist)
-  (step
-   (let* ((types (remove-duplicates (cons 'object (mapcar #'car alist))))
-          (len (length types))
-          (a (make-array (list len len) :element-type 'boolean :initial-element nil)))
-     (iter (for (type . super) in alist)
-           (assert (position type types))
-           (assert (position super types))
-           (unless (aref a
-                         (position type types)
-                         (position super types))
-             (setf (aref a
-                         (position type types)
-                         (position super types))
-                   t)))
-     (iter (with flag = nil)
-           (iter (for i below len)
-                 (iter (for j below len)
-                       (iter (for k below len)
-                             (when (and (aref a i j) (aref a j k)
-                                        (not (aref a i k)))
-                               (setf (aref a i k) t
-                                     flag t)))))
-           (while flag)
-           (setf flag nil))
-     (iter (for type in (remove 'object types))
-           (for i = (position type types))
-           (collect (cons type
-                          (remove
-                           'object
-                           (iter (for j from 0 below len)
-                                 (when (aref a i j)
-                                   (collect (elt types j)))))))))))
+  (block nil
+    (tagbody
+      :start
+      (return
+        (let* ((types (remove-duplicates (cons 'object (mapcar #'car alist))))
+               (len (length types))
+               (a (make-array (list len len) :element-type 'boolean :initial-element nil)))
+          (iter (for (type . super) in alist)
+                (assert (position type types))
+                #+nil
+                (assert (position super types))
+                (unless (position super types)
+                  (warn "Implicitly defining an undeclared supertype ~a of type ~a" super type)
+                  (push (cons super 'object) alist)
+                  (go :start))
+                (unless (aref a
+                              (position type types)
+                              (position super types))
+                  (setf (aref a
+                              (position type types)
+                              (position super types))
+                        t)))
+          (iter (with flag = nil)
+                (iter (for i below len)
+                      (iter (for j below len)
+                            (iter (for k below len)
+                                  (when (and (aref a i j) (aref a j k)
+                                             (not (aref a i k)))
+                                    (setf (aref a i k) t
+                                          flag t)))))
+                (while flag)
+                (setf flag nil))
+          (iter (for type in (remove 'object types))
+                (for i = (position type types))
+                (collect (cons type
+                               (remove
+                                'object
+                                (iter (for j from 0 below len)
+                                      (when (aref a i j)
+                                        (collect (elt types j)))))))))))))
 
 ;;; constants
 
