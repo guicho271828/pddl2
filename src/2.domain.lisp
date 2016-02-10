@@ -37,8 +37,9 @@
         *actions*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
-    (let ((*print-length* 100))
+    (let ((*print-length* 20))
       (print (list
+              *requirements*
               *types*
               *objects*
               *predicates*
@@ -136,11 +137,11 @@
 ;;; predicates
 
 (defmethod process-clause ((clause (eql :predicates)) body)
-  (setf *predicates*
-        (mapcar (lambda-ematch
-                  ((list* name args)
-                   (cons name (mapcar #'cdr (parse-typed-list args t)))))
-                body)))
+  (appendf *predicates*
+           (mapcar (lambda-ematch
+                     ((list* name args)
+                      (cons name (mapcar #'cdr (parse-typed-list args t)))))
+                   body)))
 
 ;;; numeric fluents
 
@@ -164,22 +165,7 @@
 
 (defmethod process-clause ((clause (eql :action)) body)
   ;; it does not process actions meaningfully. it is diferred until grounding.
-  (push body *actions*)
-  #+nil
-  (appendf *actions*
-           (ematch body
-             ((list* :parameters params
-                     :precondition precond
-                     :effect eff)
-              (let* ((params (parse-typed-list params t))
-                     (type-precond
-                      (iter outer
-                            (for (p . type) in params)
-                            (for types = (assoc type *types*))
-                            (iter (for type in types)
-                                  (in outer
-                                      (collect `(,type ,p)))))))
-                (canonicalize-action params `(and ,@type-precond ,precond) eff))))))
+  (push body *actions*))
 
 (defmethod process-clause ((clause (eql :derived)) body)
   ;; (:derived (blocked-trans ?p - process ?t - transition) (and ...))
