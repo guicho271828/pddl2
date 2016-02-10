@@ -30,7 +30,7 @@
         *ground-functions*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
-    (let ((*print-length* 100))
+    (let ((*print-length* 8))
       (print (list
               *init*
               *goal*

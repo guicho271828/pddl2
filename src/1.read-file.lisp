@@ -1,8 +1,11 @@
 
 (in-package :pddl2.impl)
 
-(defun read-pddl (file)
-  (with-input-from-file (s file)
+(defvar *current-filename*)
+
+(defun read-pddl (*current-filename*)
+  (format t "~&; loading ~a~&" *current-filename*)
+  (with-input-from-file (s *current-filename*)
     (eval (read s))))
 
 (lisp-namespace:define-namespace domain)

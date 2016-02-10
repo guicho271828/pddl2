@@ -37,7 +37,7 @@
         *actions*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
-    (let ((*print-length* 20))
+    (let ((*print-length* 8))
       (print (list
               *requirements*
               *types*
