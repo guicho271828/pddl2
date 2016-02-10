@@ -19,16 +19,32 @@
 
 ;; run test with (run! test-name) 
 
-(test pddl2
-  (for-all ((dpath (let ((domains (split-sequence
+(test domains
+  (for-all ((path (let ((domains (split-sequence
                                    #\Newline
-                                   (uiop:run-program (format nil "find ~a/t/classical/ -name '*domain*'"
-                                                             *default-pathname-defaults*)
+                                   (uiop:run-program (format nil "find ~a -name '*domain*'"
+                                                             (merge-pathnames "t/classical/"
+                                                                              *default-pathname-defaults*))
                                                      :output '(:string :stripped t)))))
                      (lambda ()
                        (random-elt domains)))))
     (finishes
-      (read-pddl dpath))))
+      (read-pddl path))))
+
+(test problems
+  (for-all ((path (let ((domains (split-sequence
+                                   #\Newline
+                                   (uiop:run-program (format nil "find ~a -name '*.pddl' | grep -v domain"
+                                                              (merge-pathnames "t/classical/"
+                                                                               *default-pathname-defaults*))
+                                                     :output '(:string :stripped t)))))
+                     (lambda ()
+                       (random-elt domains)))))
+    (finishes
+      (handler-case
+          (read-pddl path)
+        (unbound-domain ()
+          nil)))))
 
 
 
