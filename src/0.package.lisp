@@ -11,5 +11,9 @@
            :define
            :domain
            :problem
-           :object))
+           :object
+           :UNBOUND-PROBLEM
+           :UNBOUND-DOMAIN
+           :minimize
+           :total-cost))
 

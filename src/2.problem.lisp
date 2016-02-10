@@ -186,7 +186,7 @@
   (assert (match body
             ((list 'minimize (list 'total-cost)) t))
           nil
-          "We do not support costs other than total-cost!"))
+          "We do not support costs other than 'minimize' and 'total-cost'! : ~a" body))
 
 #+nil
 (defmethod process-clause ((clause (eql :requirements)) body)
