@@ -189,7 +189,17 @@
 ;;; process actions
 
 (defun really-process-actions (proto-actions)
-  (mappend #'really-process-action proto-actions))
+  (let ((proto-actions (copy-list proto-actions)))
+    (iter (for proto-action on proto-actions)
+          (restart-bind
+              ((push-action
+                (lambda (action)
+                  (setf (cdr (last proto-actions)) (cons action nil))))
+               (skip-action
+                (lambda ()
+                  (next-iteration))))
+            (appending
+             (really-process-action proto-action))))))
 
 (defun really-process-action (proto-action)
   (ematch proto-action
@@ -199,14 +209,20 @@
             :effect eff)
      (let* ((params (parse-typed-list params t))
             (param-names (mapcar #'car params))
-            (type-predicates (type-as-predicates params))
-            (precond-disjunctions (remove-duplicates
-                                   (lift-adl `(and ,@type-predicates ,precond))
-                                   :test #'equalp))
-            (effects (parse-effect eff)))
+            (type-predicates (types-as-predicates params))
+            (precond-disjunctions
+             ;; list of disjunctive formulas
+             (remove-duplicates
+              (lift-adl `(and ,@type-predicates ,precond))
+              :test #'equalp))
+            (effects
+             ;; list of: < list of conjunctions . list of effects >
+             ;; conditions originate from the `when' clause (conditional effects)
+             (parse-effect eff)))
        (map-product
         (lambda-match*
           ((conjunction (cons effect-conjunction effect))
+           ;; merge the preconditions and the conditions of conditional effects
            (list param-names
                  (append conjunction effect-conjunction)
                  effect)))
@@ -214,7 +230,7 @@
 
 (defun parse-effect (body)
   ;; returns a disjunction of conjunctions
-  (destructuring-bind (disjunctions con) (%parse-effects body)
+  (destructuring-bind (disjunctions con) (%parse-effect body)
     (if disjunctions
         (apply #'map-product
                (lambda (&rest args)
@@ -250,6 +266,7 @@
                             (finally (return body))))
                     matched)))
     ((list* 'when condition effect)
+     
      )
     ((list* 'increase (list 'total-cost) quantity)
      (list `(:cost ,body)))
