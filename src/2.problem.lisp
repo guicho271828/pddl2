@@ -156,7 +156,20 @@
                    (finally (return body))))
            matched)))
 
-(defun compile-adl-condition (condition)
+
+
+
+
+
+
+
+
+
+
+
+
+
+}_(defun compile-adl-condition (condition)
   "compiles FORALL, EXISTS, IMPLY and its negations into grounded AND and OR."
   (match condition
     ((list* 'and rest)
@@ -202,11 +215,23 @@
                   (map nil #'rec rest))
                  ((list 'forall params quantified-body)
                   (map nil #'rec (enumerate-quantifier params quantified-body)))
-                 ((list* 'when condition effect)
-                  (push (cons (compile-adl-condition condition) effect)
-                        conditional-effect-pairs))
+                 ((list 'when condition effect)
+                  (let ((simple-condition
+                         (compile-adl-condition condition)))
+                    (multiple-value-bind (simple-effect
+                                          more-condition-effect-pairs)
+                        (parse-effect effect)
+                      (assert (null more-condition-effect-pairs)
+                              nil
+                              "WHEN cannot contain further WHEN: (WHEN <GD> <COND-EFFECT>")
+                      (push (cons simple-condition simple-effect)
+                            conditional-effect-pairs))))
+                 ((list* 'when _)
+                  (error "syntax error in ~a" body))
                  ((list (or 'assign 'increase 'decrease 'scale-up 'scale-down) _ _)
                   (push body fluents))
+                 ((list* (or 'assign 'increase 'decrease 'scale-up 'scale-down) _)
+                  (error "syntax error in ~a" body))
                  ((list 'not _)
                   (push body del))
                  (_

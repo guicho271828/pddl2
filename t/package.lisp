@@ -48,3 +48,36 @@
 
 
 
+(test parse-effect
+  (signals error
+    ;; syntax error in WHEN
+    (let ((*types* '((place object) (object)))
+          (*objects* '((a . place) (b . place) (c . object))))
+      (print
+       (flatten-action
+        '(move :parameters (?a ?b - place ?c)
+          :precondition (and (at ?c ?a) (forall (?d - place) (foo ?d)))
+          :effect (and
+                   (not (at ?c ?a))
+                   (at ?c ?b)
+                   (when (bar ?c)
+                     (not (bar ?c))
+                     (when (baz ?c)
+                       (not (baz ?c))))
+                   (forall (?d - place) (not (foo ?d)))))))))
+  (signals error
+    ;; nested WHEN
+    (let ((*types* '((place object) (object)))
+          (*objects* '((a . place) (b . place) (c . object))))
+      (print
+       (flatten-action
+        '(move :parameters (?a ?b - place ?c)
+          :precondition (and (at ?c ?a) (forall (?d - place) (foo ?d)))
+          :effect (and
+                   (not (at ?c ?a))
+                   (at ?c ?b)
+                   (when (bar ?c)
+                     (and (not (bar ?c))
+                          (when (baz ?c)
+                            (not (baz ?c)))))
+                   (forall (?d - place) (not (foo ?d))))))))))
