@@ -83,20 +83,16 @@
           (if (eq '- token)
               (let ((super (next token)))
                 (check-type super (and symbol (not null)))
-                (iter (for type in tmp)
-                      (push (cons type super) acc)
-                      #+nil
-                      (push super (getf acc type)))
+                (iter (for token in tmp)
+                      (push (cons token super) acc))
                 (setf tmp nil))
               (progn
                 (when check-variable
                   (assert (char= #\? (aref (symbol-name token) 0))))
                 (push token tmp)))
           (finally
-           (iter (for type in tmp)
-                 (push (cons type default) acc)
-                 #+nil
-                 (push default (getf acc type)))))
+           (iter (for token in tmp)
+                 (push (cons token default) acc))))
     acc))
 
 (defun collect-indirect-type-relationship (alist)
@@ -132,23 +128,18 @@
                                           flag t)))))
                 (while flag)
                 (setf flag nil))
-          (iter (for type in (remove 'object types))
+          (iter (for type in types)
                 (for i = (position type types))
                 (collect (cons type
-                               (remove
-                                'object
-                                (iter (for j from 0 below len)
-                                      (when (aref a i j)
-                                        (collect (elt types j)))))))))))))
+                               (iter (for j from 0 below len)
+                                     (when (aref a i j)
+                                       (collect (elt types j))))))))))))
 
 ;;; constants
 
 (defmethod process-clause ((clause (eql :constants)) body)
   (setf *objects*
-        (mapcar (lambda-ematch
-                  ((cons object type)
-                   (cons object (cdr (assoc type *types*)))))
-                (parse-typed-list body))))
+        (parse-typed-list body)))
 
 ;;; predicates
 
