@@ -42,5 +42,6 @@
            :make-trie
            :merge-trie
            :trie=
-           :trie-member))
+           :trie-member
+           :lift-or))
 
