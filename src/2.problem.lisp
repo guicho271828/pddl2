@@ -156,20 +156,7 @@
                    (finally (return body))))
            matched)))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-}_(defun compile-adl-condition (condition)
+(defun compile-adl-condition (condition)
   "compiles FORALL, EXISTS, IMPLY and its negations into grounded AND and OR."
   (match condition
     ((list* 'and rest)
@@ -253,3 +240,34 @@
     (nil
      (list (cons simple-precond simple-effects)))))
 
+#+nil
+(let ((*types* '((place object) (object)))
+      (*objects* '((a . place) (b . place) (c . object))))
+  (print
+   (flatten-action
+    '(move :parameters (?a ?b - place ?c)
+      :precondition (and (at ?c ?a) (forall (?d - place) (foo ?d)))
+      :effect (and
+               (not (at ?c ?a))
+               (at ?c ?b)
+               (when (bar ?c)
+                 (not (bar ?c)))
+               (forall (?d - place) (not (foo ?d)))
+               (increase (total-cost) 3))))))
+
+;;; process axioms
+
+(defun really-process-axioms (proto-actions)
+  (mappend #'flatten-axiom proto-actions))
+
+(defun flatten-axiom (proto-axiom)
+  (ematch proto-axiom
+    ((list (list* name params) condition)
+     (let* ((params (parse-typed-list params t))
+            (param-names (mapcar #'car params))
+            (type-predicates (types-as-predicates params))
+            (simple-condition
+             ;; or, exist, imply, forall are compiled into axioms
+             (compile-adl-condition `(and ,@type-predicates ,condition))))
+       `((,name ,param-names)
+         ,simple-condition)))))
