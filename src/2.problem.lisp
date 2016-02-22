@@ -87,19 +87,21 @@
                                (append init (types-as-predicates *objects*))))))))
 
 (defun types-as-predicates (params)
-  (iter outer
-        (for (p . type) in params)
-        (for types = (assoc type *types*))
-        (restart-case
-            (assert types)
-          (insert-simple-type ()
-            :report (lambda (s) (format s "insert the failed type ~a as a subtype of OBJECT" type))
-            (push `(,type object) *types*)))
-        (iter (for type in types)
-              (when (eq type 'object)
-                (next-iteration))
-              (in outer
-                  (collect `(,type ,p))))))
+  (prog ()
+    :start
+    (return
+      (iter outer
+            (for (p . type) in params)
+            (for types = (assoc type *types*))
+            (unless types
+              (warn "Defining an undeclared type ~a as a subtype of OBJECT" type)
+              (push (list type 'object) *types*)
+              (go :start))
+            (iter (for type in types)
+                  (when (eq type 'object)
+                    (next-iteration))
+                  (in outer
+                      (collect `(,type ,p))))))))
 
 (defmethod process-clause ((clause (eql :goal)) body)
   (push `(:goal
