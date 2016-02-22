@@ -35,7 +35,7 @@
 (defun parse-domain (body)
   "Parse the domain body as a list. It generally ignores the requirements."
   (let ((*requirements* '(:strips))
-        *types*
+        (*types* '((object)))
         *objects*
         *predicates*
         *numeric-fluents*
