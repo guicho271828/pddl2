@@ -55,3 +55,19 @@
                        (funcall fn (reverse (cons head path)))))))
     (rec nil trie)))
 
+(defun pop-trie (trie)
+  (let (result)
+    (labels ((rec (path trie)
+               (ematch trie
+                 ((list* (cons head nil) rest)
+                  (setf result (cons head path))
+                  rest)
+                 ((list* (cons head subtrie) rest)
+                  (let ((new-subtrie (rec (cons head path) subtrie)))
+                    (if new-subtrie
+                        (list* (cons head new-subtrie) rest)
+                        rest))))))
+      (let ((r2 (rec nil trie)))
+        (values (nreverse result)
+                r2)))))
+

@@ -155,6 +155,24 @@
                                 (a x z))))
          acc)
        :test #'equalp))
+  (let ((trie (make-trie '((a x y)
+                           (c a x y)
+                           (a x z)))))
+    (is (set-equal
+         '((a x y)
+           (c a x y)
+           (a x z))
+         (print (list (multiple-value-bind (r1 r2) (pop-trie trie)
+                        (prog1 r1
+                               (setf trie r2)))
+                      (multiple-value-bind (r1 r2) (pop-trie trie)
+                        (prog1 r1
+                               (setf trie r2)))
+                      (multiple-value-bind (r1 r2) (pop-trie trie)
+                        (prog1 r1
+                               (setf trie r2)))))
+         :test #'equalp))
+    (is (trie= trie (make-trie nil))))
   (untrace make-trie trie= trie-member))
 
 #+nil

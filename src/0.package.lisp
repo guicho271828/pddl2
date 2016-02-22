@@ -46,5 +46,6 @@
            :trie-member
            :lift-or
            :variablep
-           :map-trie))
+           :map-trie
+           :pop-trie))
 
