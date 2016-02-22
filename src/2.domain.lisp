@@ -88,7 +88,8 @@
                 (setf tmp nil))
               (progn
                 (when check-variable
-                  (assert (char= #\? (aref (symbol-name token) 0))))
+                  (assert (char= #\? (aref (symbol-name token) 0))
+                          nil "the name of symbol ~a does not start with #\? despite being variable" token))
                 (push token tmp)))
           (finally
            (iter (for token in tmp)
