@@ -22,7 +22,8 @@
 (defvar *types*)
 (defvar *objects*)
 (defvar *predicates*)
-(defvar *functions*)
+(defvar *numeric-fluents*)
+(defvar *object-fluents*)
 (defvar *actions*)
 (defvar *axioms*)
 
@@ -32,7 +33,8 @@
         *types*
         *objects*
         *predicates*
-        *functions*
+        *numeric-fluents*
+        *object-fluents*
         *axioms*
         *actions*)
     (iter (for (c-kind . c-body) in body)
@@ -43,7 +45,8 @@
               *types*
               *objects*
               *predicates*
-              *functions*
+              *numeric-fluents*
+              *object-fluents*
               *axioms*
               *actions*)))))
 
@@ -154,20 +157,20 @@
 ;;; numeric fluents
 
 (defmethod process-clause ((clause (eql :functions)) body)
-  (assert (null *functions*))
-  (setf *functions*
-        (mapcar (lambda-ematch
-                  ((cons (list* name args) 'number)
-                   (cons name (mapcar #'cdr (parse-typed-list args t)))))
-                (parse-typed-list body nil 'number))))
+  (assert (null *numeric-fluents*))
+  (assert (null *object-fluents*))
+  (setf (values *numeric-fluents* *object-fluents*)
+        (iter (for elem in (parse-typed-list body))
+              (match elem
+                ((cons (list* name args) 'number)
+                 (collect (cons name (mapcar #'cdr (parse-typed-list args t))) into nf))
+                ((cons (list* name args) 'object)
+                 (collect (cons name (mapcar #'cdr (parse-typed-list args t))) into of)))
+              (finally
+               (return (values nf of))))))
 
 (defmethod process-clause ((clause (eql :fluents)) body)
-  (assert (null *functions*))
-  (setf *functions*
-        (mapcar (lambda-ematch
-                  ((cons (list* name args) 'number)
-                   (cons name (mapcar #'cdr (parse-typed-list args t)))))
-                (parse-typed-list body nil 'number))))
+  (process-clause :functions body))
 
 ;;; actions
 

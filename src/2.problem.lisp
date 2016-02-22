@@ -7,7 +7,10 @@
 (defvar *ground-predicates*)
 (defvar *ground-actions*)
 (defvar *ground-axioms*)
-(defvar *ground-functions*)
+
+(defvar *ground-numeric-fluents*)
+(defvar *ground-object-fluents*)
+
 (defvar *init*)
 (defvar *goal*)
 (defvar *metric*)
@@ -17,7 +20,8 @@
         *types*
         *objects*
         *predicates*
-        *functions*
+        *numeric-fluents*
+        *object-fluents*
         *axioms*
         *actions*
         ;; 
@@ -28,7 +32,8 @@
         *ground-predicates*
         *ground-actions*
         *ground-axioms*
-        *ground-functions*
+        *ground-numeric-fluents*
+        *ground-object-fluents*
         *metric*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
@@ -43,7 +48,8 @@
               *ground-predicates*
               *ground-actions*
               *ground-axioms*
-              *ground-functions*
+              *ground-numeric-fluents*
+              *ground-object-fluents*
               *metric*)))))
 ;;; process clauses
 (defmethod process-clause ((clause (eql :domain)) body)
@@ -55,25 +61,29 @@
                    *types*
                    *objects*
                    *predicates*
-                   *functions*
+                   *numeric-fluents*
+                   *object-fluents*
                    *axioms*
                    *actions*)
            (values-list *domain*)))))
 
 (defmethod process-clause ((clause (eql :objects)) body)
+  ;; apppend to the constants
   (appendf *objects* (parse-typed-list body)))
 
 (defmethod process-clause ((clause (eql :init)) body)
-  (setf (values *init* *ground-functions*)
-        (let ((body (append (types-as-predicates *objects*) body)))
-          (values (remove '= body :key #'first)
-                  (mapcar #'cdr
-                          (remove '= body :key #'first :test (complement #'eq))))))
-  (iter (for gf in *ground-functions*)
-        (assert (match gf
-                  ((list _ (number)) t))
-                nil
-                "object fluents in ~a !" gf)))
+  (setf (values *numeric-fluents* *object-fluents* *init*)
+        (iter (for elem in body)
+              (ematch elem
+                ((list '= place (and value (number)))
+                 (collect (cdr elem) into nf))
+                ((list '= place (and value (symbol)))
+                 (collect (cdr elem) into of))
+                (_
+                 (collect elem into init)))
+              (finally
+               (return (values nf of
+                               (append init (types-as-predicates *objects*))))))))
 
 (defun types-as-predicates (params)
   (iter outer
@@ -91,12 +101,7 @@
           :effect (and))))
 
 (defmethod process-clause ((clause (eql :metric)) body)
-  (setf *metric* body)
-  ;; (assert (match body
-  ;;           ((list 'minimize (list 'total-cost)) t))
-  ;;         nil
-  ;;         "We do not support costs other than 'minimize' and 'total-cost'! : ~a" body)
-  )
+  (setf *metric* body))
 
 ;;; process actions
 
