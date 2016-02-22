@@ -44,16 +44,54 @@
                      (cons head (make-trie children))))
                acc)))
 
-(print
- (make-trie '((a x y)
-              (b x y z)
-              (a x z)
-              (b x z y))))
+;; (defun make-trie (list)
+;;   `(+root+ ,@(%make-trie list)))
 
-;; ((B (X (Z (Y)) (Y (Z)))) (A (X (Z) (Y))))
+(defun merge-trie (t1 t2)
+  (let ((acc (copy-tree t1)))
+    (iter (for subtrie2 in t2)
+          (for (head . rest) = subtrie2)
+          (if-let ((subtrie1 (assoc head acc)))
+            (setf (cdr subtrie1)
+                  (merge-trie (cdr subtrie1) rest))
+            (push subtrie2 acc)))
+    acc))
 
-(print (make-trie '((a) (b))))
-(print (make-trie '((a) (a))))
+(defun trie= (t1 t2)
+  (iter (for subtrie2 in t2)
+        (for (head . rest) = subtrie2)
+        (always
+         (when-let ((subtrie1 (assoc head t1)))
+           (trie= (cdr subtrie1) rest)))))
+
+(defun trie-member (list trie)
+  (match list
+    ((cons head nil)
+     (match (assoc head trie)
+       ((cons _ nil)
+        t)))
+    ((cons head rest)
+     (match (assoc head trie)
+       ((cons _ rest2)
+        (trie-member rest rest2))))))
+
+;;; enumerate reachable predicates
+
+(defun bind-action (action parameter object)
+  (ematch action
+    ((list name
+           :parameters params
+           :precondition precond
+           :effect eff)
+     (assert (member parameter params))
+     (list name
+           :parameters (remove parameter params)
+           :precondition (subst object parameter precond)
+           :effect (subst object parameter eff)))))
+
+;; (defun reachable-predicates (trie)
+  
+
 
 ;; (action-layer init)
 

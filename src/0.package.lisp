@@ -38,5 +38,9 @@
            :-
            :*DOMAIN-TABLE*
            :*PROBLEM-TABLE*
-           :ground-problem))
+           :ground-problem
+           :make-trie
+           :merge-trie
+           :trie=
+           :trie-member))
 

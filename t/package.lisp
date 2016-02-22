@@ -82,6 +82,68 @@
                             (not (baz ?c)))))
                    (forall (?d - place) (not (foo ?d))))))))))
 
+(test trie
+  (trace make-trie trie= trie-member)
+  (finishes (make-trie '()))
+  (finishes
+    (make-trie '((a x y)
+                 (b x y z)
+                 (a x z)
+                 (b x z y))))
+  (finishes (make-trie '((a) (b))))
+  (finishes (make-trie '((a) (a))))
+  (finishes
+    (merge-trie (print (make-trie '((a x y))))
+                (print (make-trie '((a x z))))))
+  (is-true
+   (trie= (make-trie '())
+          (make-trie '())))
+  (is-true
+   (trie= (make-trie '((a x y)))
+          (make-trie '((a x y)))))
+  (is-true
+   (trie= (make-trie '((a x y)
+                       (a x z)))
+          (make-trie '((a x z)
+                       (a x y)))))
+  (is-true
+   (trie= (make-trie '((a x y)
+                       (c a x y)
+                       (a x z)))
+          (make-trie '((a x z)
+                       (a x y)
+                       (c a x y)))))
+  (is-true
+   (trie-member
+    '(c a x y)
+    (make-trie '((a x y)
+                 (c a x y)
+                 (a x z)))))
+  (is-false
+   (trie-member
+    '(c a x z)
+    (make-trie '((a x y)
+                 (c a x y)
+                 (a x z)))))
+  (is-false
+   (trie-member
+    nil
+    (make-trie '((a x y)
+                 (c a x y)
+                 (a x z)))))
+  (is-false
+   (trie-member
+    '(b)
+    (make-trie '((a x y)
+                 (c a x y)
+                 (a x z)))))
+  (is-false
+   (trie-member
+    '(a x)
+    (make-trie '((a x y)
+                 (c a x y)
+                 (a x z)))))
+  (untrace make-trie trie= trie-member))
 
 (test ground-problem
   (for-all ((problem
