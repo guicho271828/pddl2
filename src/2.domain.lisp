@@ -76,6 +76,9 @@
         (iter (for type in (remove 'object (mapcar #'first *types*)))
               (collect `(,type object)))))
 
+(defun variablep (token)
+  (char= #\? (aref (symbol-name token) 0)))
+
 (defun parse-typed-list (body &optional check-variable (default 'object))
   (let (acc tmp)
     (iter (generate token in body)
@@ -88,8 +91,8 @@
                 (setf tmp nil))
               (progn
                 (when check-variable
-                  (assert (char= #\? (aref (symbol-name token) 0))
-                          nil "the name of symbol ~a does not start with #\? despite being variable" token))
+                  (assert (variablep token) nil
+                          "the name of symbol ~a does not start with #\? despite being variable" token))
                 (push token tmp)))
           (finally
            (iter (for token in tmp)

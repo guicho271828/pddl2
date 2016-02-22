@@ -43,5 +43,6 @@
            :merge-trie
            :trie=
            :trie-member
-           :lift-or))
+           :lift-or
+           :variablep))
 
