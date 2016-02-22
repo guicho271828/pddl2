@@ -6,7 +6,8 @@
 (in-package :cl-user)
 (defpackage :pddl2.impl
   (:use :cl :trivia :alexandria :iterate
-        :lisp-namespace)
+        :lisp-namespace
+        :function-cache)
   (:export :read-pddl
            :define
            :domain
