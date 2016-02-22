@@ -20,9 +20,12 @@
 ;; It does not trust any of the metadata defined in the sections.
 (defvar *requirements*)
 (defvar *types* nil
-  "an alist of (type . supertypes). supertypes is a list containing _ALL_ supertypes of the type. E.g.
-  *types* = ((truck . (car object))) == ((truck car object)). ")
-(defvar *objects*)
+  "An alist of (type . supertypes).
+ SUPERTYPES is a list containing _ALL_ supertypes of the type. E.g.
+  *types* = ((truck . (car object))) == ((truck car object)).
+ It should contain (OBJECT).")
+(defvar *objects* nil
+  "An alist of (OBJECT-NAME . TYPE). TYPE is a symbol designating the type e.g. (truck0 . truck)")
 (defvar *predicates*)
 (defvar *numeric-fluents*)
 (defvar *object-fluents*)
