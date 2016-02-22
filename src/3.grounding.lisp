@@ -34,7 +34,7 @@
         (collect (funcall fn key value))))
 
 (defun make-trie (list)
-  (let (acc)
+  (let (acc (list (remove-duplicates list :test #'equal)))
     (iter (for (head . rest) in list)
           (push rest (getf acc head)))
     ;; (sleep 1)
@@ -44,16 +44,16 @@
                      (cons head (make-trie children))))
                acc)))
 
-#+test
-(make-trie '((a x y)
-             (b x y z)
-             (a x z)
-             (b x z y)))
+(print
+ (make-trie '((a x y)
+              (b x y z)
+              (a x z)
+              (b x z y))))
 
-#+result
-((B (X (Z (Y)) (Y (Z)))) (A (X (Z) (Y))))
+;; ((B (X (Z (Y)) (Y (Z)))) (A (X (Z) (Y))))
 
-
+(print (make-trie '((a) (b))))
+(print (make-trie '((a) (a))))
 
 ;; (action-layer init)
 
