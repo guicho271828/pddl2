@@ -46,3 +46,12 @@
      (match (assoc head trie)
        ((cons _ rest2)
         (trie-member rest rest2))))))
+
+(defun map-trie (fn trie)
+  (labels ((rec (path current)
+             (iter (for (head . subtrie) in current)
+                   (if subtrie
+                       (rec (cons head path) subtrie)
+                       (funcall fn (reverse (cons head path)))))))
+    (rec nil trie)))
+

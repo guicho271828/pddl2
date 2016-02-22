@@ -143,6 +143,18 @@
     (make-trie '((a x y)
                  (c a x y)
                  (a x z)))))
+  (is (set-equal
+       '((a x y)
+         (c a x y)
+         (a x z))
+       (let (acc)
+         (map-trie (lambda (args)
+                     (push args acc))
+                   (make-trie '((a x y)
+                                (c a x y)
+                                (a x z))))
+         acc)
+       :test #'equalp))
   (untrace make-trie trie= trie-member))
 
 (test ground-problem
