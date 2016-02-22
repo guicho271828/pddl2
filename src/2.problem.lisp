@@ -83,21 +83,24 @@
               (in outer
                   (collect `(,type ,p))))))
 
-(defvar *disjunctions*)
-
 (defmethod process-clause ((clause (eql :goal)) body)
-  (setf *goal* (lift-adl (first body))))
+  (push *actions*
+        `(:action *goal*
+          :parameters ()
+          :precondition ,body
+          :effect (and))))
 
-;; (or (and (or 1 2)
-;;          4)
-;;     3)
-;; 
-;; (or (and 1 4)
-;;     (and 2 4)
-;;     3)
-;; 
-;; 
-;; = (or 1 2 3)
+(defmethod process-clause ((clause (eql :metric)) body)
+  (setf *metric* body)
+  ;; (assert (match body
+  ;;           ((list 'minimize (list 'total-cost)) t))
+  ;;         nil
+  ;;         "We do not support costs other than 'minimize' and 'total-cost'! : ~a" body)
+  )
+
+;;; process actions
+
+(defvar *disjunctions*)
 
 (defun lift-adl (body)
   ;; returns a disjunction of conjunctions
@@ -179,22 +182,16 @@
 
 
 
-(defmethod process-clause ((clause (eql :metric)) body)
-  (setf *metric* body)
-  (assert (match body
-            ((list 'minimize (list 'total-cost)) t))
-          nil
-          "We do not support costs other than 'minimize' and 'total-cost'! : ~a" body))
-
-;;; process actions
 
 (defun really-process-actions (proto-actions)
-  (let ((proto-actions (copy-list proto-actions)))
+  (let ((proto-actions (copy-list proto-actions))
+        (last (last proto-actions)))
     (iter (for proto-action on proto-actions)
           (restart-bind
               ((push-action
                 (lambda (action)
-                  (setf (cdr (last proto-actions)) (cons action nil))))
+                  (setf (cdr last) (cons action nil)
+                        last (cdr last))))
                (skip-action
                 (lambda ()
                   (next-iteration))))
@@ -214,39 +211,18 @@
              ;; list of disjunctive formulas
              (remove-duplicates
               (lift-adl `(and ,@type-predicates ,precond))
-              :test #'equalp))
-            (effects
-             ;; list of: < list of conjunctions . list of effects >
-             ;; conditions originate from the `when' clause (conditional effects)
-             (parse-effect eff)))
-       (map-product
-        (lambda-match*
-          ((conjunction (cons effect-conjunction effect))
-           ;; merge the preconditions and the conditions of conditional effects
-           (list param-names
-                 (append conjunction effect-conjunction)
-                 effect)))
-        precond-disjunctions effects)))))
+              :test #'equalp)))
+       (multiple-value-bind (static-effects conditional-effects) (parse-effect eff)
+         (map-product
+          (lambda-match*
+            ((conjunction (cons condition effect))
+             ;; merge the preconditions and the conditions of conditional effects
+             (list param-names
+                   (append conjunction effect-conjunction)
+                   effect)))
+          precond-disjunctions conditional-effects))))))
 
 (defun parse-effect (body)
-  ;; returns a disjunction of conjunctions
-  (destructuring-bind (disjunctions con) (%parse-effect body)
-    (if disjunctions
-        (apply #'map-product
-               (lambda (&rest args)
-                 (reduce #'append args :initial-value con :from-end t))
-               (iter (for disjunction in disjunctions)
-                     (collect
-                      (iter (for disjunction-term in disjunction)
-                            (appending (lift-adl disjunction-term))))))
-        (list con))))
-
-(defun %parse-effect (body)
-  (let (*disjunctions*)
-    (let ((conjunction (%%parse-effect body)))
-      (list *disjunctions* conjunction))))
-
-(defun %%parse-effect (body)
   (match body
     ((list* 'and rest)
      (mappend #'%%parse-effect rest))
