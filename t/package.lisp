@@ -175,19 +175,6 @@
     (is (trie= trie (make-trie nil))))
   (untrace make-trie trie= trie-member))
 
-#+nil
-(test ground-problem
-  (for-all ((problem
-             (with-hash-table-iterator (it *problem-table*)
-               (lambda ()
-                 (multiple-value-match (it)
-                   ((t _ value)
-                    value))))))
-    (if problem
-        (finishes
-          (apply #'ground-problem problem))
-        (pass "finished"))))
-
 (test ground-problem1
   (finishes
     (define (domain testdomain)
@@ -217,3 +204,19 @@
     (read-pddl (merge-pathnames "t/test2/domain.pddl" *default-pathname-defaults*))
     (read-pddl (merge-pathnames "t/test2/pfile1.pddl" *default-pathname-defaults*))
     (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))
+
+
+(test ground-problem4
+  (for-all ((problem
+             (with-hash-table-iterator (it *problem-table*)
+               (lambda ()
+                 (multiple-value-match (it)
+                   ((t key value)
+                    (list key value)))))))
+    (match problem
+      ((list key problem) 
+       (if problem
+           (finishes
+             (format t "~&instantiating ~A~&" key)
+             (time (apply #'ground-problem problem)))
+           (pass "finished"))))))
