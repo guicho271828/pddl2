@@ -81,3 +81,16 @@
                           (when (baz ?c)
                             (not (baz ?c)))))
                    (forall (?d - place) (not (foo ?d))))))))))
+
+
+(test ground-problem
+  (for-all ((problem
+             (with-hash-table-iterator (it *problem-table*)
+               (lambda ()
+                 (multiple-value-match (it)
+                   ((t _ value)
+                    value))))))
+    (if problem
+        (finishes
+          (apply #'ground-problem problem))
+        (pass "finished"))))

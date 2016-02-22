@@ -35,5 +35,8 @@
            :*ground-numeric-fluents*
            :*ground-object-fluents*
            :flatten-action
-           :-))
+           :-
+           :*DOMAIN-TABLE*
+           :*PROBLEM-TABLE*
+           :ground-problem))
 
