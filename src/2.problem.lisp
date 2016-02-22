@@ -4,16 +4,12 @@
 
 (defvar *domain*)
 (defvar *domain-name*)
-(defvar *ground-predicates*)
-(defvar *ground-actions*)
-(defvar *ground-axioms*)
+
+(defvar *init*)
+(defvar *metric*)
 
 (defvar *ground-numeric-fluents*)
 (defvar *ground-object-fluents*)
-
-(defvar *init*)
-(defvar *goal*)
-(defvar *metric*)
 
 (defun parse-problem (body)
   (let (*requirements*
@@ -28,31 +24,32 @@
         *domain*
         *domain-name*
         *init*
-        *goal*
-        *ground-predicates*
-        *ground-actions*
-        *ground-axioms*
+        *metric*
         *ground-numeric-fluents*
-        *ground-object-fluents*
-        *metric*)
+        *ground-object-fluents*)
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
     ;; removing disjunctive conditions
     (setf *actions* (really-process-actions *actions*))
     (setf *axioms*  (really-process-axioms *axioms*))
-    (setf *ground-actions* (ground-actions *actions*))
-    (setf *ground-axioms*  (ground-axioms *axioms*))
     ;; grounding actions, axioms and functions
     (let ((*print-length* 8))
-      (print (list
-              *init*
-              *goal*
-              *ground-predicates*
-              *ground-actions*
-              *ground-axioms*
-              *ground-numeric-fluents*
-              *ground-object-fluents*
-              *metric*)))))
+      (print (list *requirements*
+                   *types*
+                   *objects*
+                   *predicates*
+                   *numeric-fluents*
+                   *object-fluents*
+                   *axioms*
+                   *actions*
+                   ;;
+                   *domain*
+                   *domain-name*
+                   *init*
+                   *metric*
+                   *ground-numeric-fluents*
+                   *ground-object-fluents*)))))
+
 ;;; process clauses
 (defmethod process-clause ((clause (eql :domain)) body)
   (ematch body
@@ -74,13 +71,15 @@
   (appendf *objects* (parse-typed-list body)))
 
 (defmethod process-clause ((clause (eql :init)) body)
-  (setf (values *numeric-fluents* *object-fluents* *init*)
+  (setf (values *ground-numeric-fluents*
+                *ground-object-fluents*
+                *init*)
         (iter (for elem in body)
               (ematch elem
                 ((list '= place (and value (number)))
-                 (collect (cdr elem) into nf))
+                 (collect (append place (list value)) into nf))
                 ((list '= place (and value (symbol)))
-                 (collect (cdr elem) into of))
+                 (collect (append place (list value)) into of))
                 (_
                  (collect elem into init)))
               (finally
