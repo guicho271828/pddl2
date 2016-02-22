@@ -136,7 +136,7 @@
                    ((cons precond effects)
                     (list name
                           :parameters param-names
-                          :precondition precond
+                          :precondition (lift-or precond)
                           :effect effects)))
                  (%flatten-conditional-effects simple-precond
                                                static-effects
