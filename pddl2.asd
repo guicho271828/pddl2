@@ -27,6 +27,7 @@
                 :components
                 ((:file "0.package")
                  (:file "1.utility")
+                 (:file "1.trie")
                  (:file "1.read-file")
                  (:file "2.domain")
                  (:file "2.problem")
