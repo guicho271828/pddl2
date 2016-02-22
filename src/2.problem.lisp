@@ -38,8 +38,8 @@
     (iter (for (c-kind . c-body) in body)
           (funcall #'process-clause c-kind c-body))
     ;; removing disjunctive conditions
-    (setf *actions* (really-process-actions *actions*)
-          *axioms*  (really-process-axioms *axioms*))
+    (setf *actions* (really-process-actions *actions*))
+    (setf *axioms*  (really-process-axioms *axioms*))
     ;; grounding actions, axioms and functions
     (let ((*print-length* 8))
       (print (list
@@ -89,7 +89,14 @@
   (iter outer
         (for (p . type) in params)
         (for types = (assoc type *types*))
+        (restart-case
+            (assert types)
+          (insert-simple-type ()
+            :report (lambda (s) (format s "insert the failed type ~a as a subtype of OBJECT" type))
+            (push `(,type object) *types*)))
         (iter (for type in types)
+              (when (eq type 'object)
+                (next-iteration))
               (in outer
                   (collect `(,type ,p))))))
 
@@ -105,159 +112,119 @@
 
 ;;; process actions
 
-(defvar *disjunctions*)
-
-(defun lift-adl (body)
-  ;; returns a disjunction of conjunctions
-  (destructuring-bind (disjunctions con) (%lift-adl body)
-    (if disjunctions
-        (apply #'map-product
-               (lambda (&rest args)
-                 (reduce #'append args :initial-value con :from-end t))
-               (iter (for disjunction in disjunctions)
-                     (collect
-                      (iter (for disjunction-term in disjunction)
-                            (appending (lift-adl disjunction-term))))))
-        (list con))))
-
-(defun %lift-adl (body)
-  (let (*disjunctions*)
-    (let ((conjunction (%%lift-adl body)))
-      (list *disjunctions* conjunction))))
-
-(defun %%lift-adl (body)
-  (match body
-    ((list* 'and rest)
-     (mappend #'%%lift-adl rest))
-    ((list* 'or rest)
-     (push rest *disjunctions*)
-     nil)
-    ((list* 'forall params quantified-body)
-     (let* ((params (parse-typed-list params t))
-            (matched (iter (for (p . type) in params)
-                           (collect
-                               (iter (for (o . ot) in *objects*)
-                                     (for supers = (assoc ot *types*))
-                                     (when (member type supers)
-                                       (collect o)))))))
-       (map-product (lambda (&rest args)
-                      (iter (with body = quantified-body)
-                            (for p in (mapcar #'first params))
-                            (for o in args)
-                            (setf body (subst o p body))
-                            (finally (return body))))
-                    matched)))
-    ((list* 'exists params quantified-body)
-     (let* ((params (parse-typed-list params t))
-            (matched (iter (for (p . type) in params)
-                           (collect
-                               (iter (for (o . ot) in *objects*)
-                                     (for supers = (assoc ot *types*))
-                                     (when (member type supers)
-                                       (collect o))))))
-            (grounded (map-product (lambda (&rest args)
-                                     (iter (with body = quantified-body)
-                                           (for p in (mapcar #'first params))
-                                           (for o in args)
-                                           (setf body (subst o p body))
-                                           (finally (return body))))
-                                   matched)))
-       (push grounded *disjunctions*)
-       nil))
-    ((list* 'imply lhs rhs)
-     (push (list `(not ,lhs) rhs) *disjunctions*)
-     nil)
-    ((list 'not (list* 'and rest))
-     (%%lift-adl `(or ,@(mapcar (lambda (x) `(not ,x)) rest))))
-    ((list 'not (list* 'or rest))
-     (mappend #'%%lift-adl rest))
-    ((list 'not (list* 'forall params quantified-body))
-     (%%lift-adl `(exists ,params (not ,quantified-body))))
-    ((list 'not (list* 'exists params quantified-body))
-     (%%lift-adl `(forall ,params (not ,quantified-body))))
-    ((list 'not (list* 'imply lhs rhs))
-     ;; t t -> t -> n
-     ;; t n -> n -> t
-     ;; n t -> t -> n
-     ;; n n -> t -> n
-     (%%lift-adl `(and ,lhs (not ,rhs))))
-    (_
-     (list body))))
-
-
-
-
-
 (defun really-process-actions (proto-actions)
-  (let ((proto-actions (copy-list proto-actions))
-        (last (last proto-actions)))
-    (iter (for proto-action on proto-actions)
-          (restart-bind
-              ((push-action
-                (lambda (action)
-                  (setf (cdr last) (cons action nil)
-                        last (cdr last))))
-               (skip-action
-                (lambda ()
-                  (next-iteration))))
-            (appending
-             (really-process-action proto-action))))))
+  (mappend #'flatten-action proto-actions))
 
-(defun really-process-action (proto-action)
+(defun flatten-action (proto-action)
   (ematch proto-action
-    ((list* name
-            :parameters params
-            :precondition precond
-            :effect eff)
+    ((list name
+           :parameters params
+           :precondition precond
+           :effect eff)
      (let* ((params (parse-typed-list params t))
             (param-names (mapcar #'car params))
             (type-predicates (types-as-predicates params))
-            (precond-disjunctions
-             ;; list of disjunctive formulas
-             (remove-duplicates
-              (lift-adl `(and ,@type-predicates ,precond))
-              :test #'equalp)))
-       (multiple-value-bind (static-effects conditional-effects) (parse-effect eff)
-         (map-product
-          (lambda-match*
-            ((conjunction (cons condition effect))
-             ;; merge the preconditions and the conditions of conditional effects
-             (list param-names
-                   (append conjunction effect-conjunction)
-                   effect)))
-          precond-disjunctions conditional-effects))))))
+            (simple-precond
+             ;; or, exist, imply, forall are compiled into axioms
+             (compile-adl-condition `(and ,@type-predicates ,precond))))
+       (multiple-value-bind (static-effects conditional-effect-pairs) (parse-effect eff)
+         (format t "~& ~a conditional effects in ~a" (length conditional-effect-pairs) name)
+         (mapcar (lambda-ematch
+                   ((cons precond effects)
+                    (list name
+                          :parameters param-names
+                          :precondition precond
+                          :effect effects)))
+                 (%flatten-conditional-effects simple-precond
+                                               static-effects
+                                               conditional-effect-pairs)))))))
+
+(defun enumerate-quantifier (params quantified-body)
+  (let* ((params (parse-typed-list params t))
+         (matched (iter (for (p . type) in params)
+                        (collect
+                            (iter (for (o . ot) in *objects*)
+                                  (for supers = (assoc ot *types*))
+                                  (when (member type supers)
+                                    (collect o)))))))
+    (apply #'map-product
+           (lambda (&rest args)
+             (iter (with body = quantified-body)
+                   (for p in (mapcar #'first params))
+                   (iter (for o in (print args))
+                         (print (setf body (subst o p body)))
+                         (finally (return body)))))
+           matched)))
+
+(defun compile-adl-condition (condition)
+  "compiles FORALL, EXISTS, IMPLY and its negations into grounded AND and OR."
+  (match condition
+    ((list* 'and rest)
+     `(and ,@(mapcar #'compile-adl-condition rest)))
+    ((list* 'or rest)
+     `(or ,@(mapcar #'compile-adl-condition rest)))
+    ((list 'forall params quantified-body)
+     `(and ,@(enumerate-quantifier params quantified-body)))
+    ((list 'exists params quantified-body)
+     `(or ,@(enumerate-quantifier params quantified-body)))
+    ((list 'imply lhs rhs)
+     `(or (not ,lhs) (and ,lhs ,rhs)))
+    ((list 'not _)
+     (compile-negative-condition condition))
+    (_
+     condition)))
+
+(defun compile-negative-condition (condition)
+  "Compile NOT AND, NOT OR, NOT FORALL, NOT EXISTS, NOT IMPLY to the positive form."
+  (ematch condition
+    ((list 'not (list* 'and rest))
+     (compile-adl-condition `(or ,@(mapcar (lambda (x) `(not ,x)) rest))))
+    ((list 'not (list* 'or rest))
+     (compile-adl-condition `(and ,@(mapcar (lambda (x) `(not ,x)) rest))))
+    ((list 'not (list 'forall params quantified-body))
+     (compile-adl-condition `(exists ,params (not ,quantified-body))))
+    ((list 'not (list 'exists params quantified-body))
+     (compile-adl-condition `(forall ,params (not ,quantified-body))))
+    ((list 'not (list 'imply lhs rhs))
+     (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
+    ((list 'not _)
+     condition)))
 
 (defun parse-effect (body)
-  (match body
-    ((list* 'and rest)
-     (mappend #'%%parse-effect rest))
-    ((list* 'forall params quantified-body)
-     (let* ((params (parse-typed-list params t))
-            (matched (iter (for (p . type) in params)
-                           (collect
-                               (iter (for (o . ot) in *objects*)
-                                     (for supers = (assoc ot *types*))
-                                     (when (member type supers)
-                                       (collect o)))))))
-       (map-product (lambda (&rest args)
-                      (iter (with body = quantified-body)
-                            (for p in (mapcar #'first params))
-                            (for o in args)
-                            (setf body (subst o p body))
-                            (finally (return body))))
-                    matched)))
-    ((list* 'when condition effect)
-     
-     )
-    ((list* 'increase (list 'total-cost) quantity)
-     (list `(:cost ,body)))
-    ((list* 'increase _ _)
-     (error "Increasing places other than (TOTAL-COST) is not supported : ~a" body))
-    ((list* (and invalid (or 'decrease 'assign 'scale-up 'scale-down)) _ _)
-     (error "general numeric fluent ~a is not supported : ~a" invalid body))
-    ((list 'not (list* (and invalid (or 'and 'or 'forall 'exists 'imply)) _))
-     (error "~a in atomic formula : ~a" invalid body))
-    ((list 'not atomic-formula)
-     (list `(:del ,body)))
-    (_
-     (list `(:add ,body)))))
+  "Extract WHEN, compile FORALL, and flatten AND tree."
+  (let (conditional-effect-pairs fluents add del)
+    (labels ((rec (body)
+               (match body
+                 ((or (list 'not (list* (or 'and 'or 'forall 'exists 'imply) _))
+                      (list* 'exists _))
+                  (error "invalid effect: ~a" body))
+                 ((list* 'and rest)
+                  (map nil #'rec rest))
+                 ((list 'forall params quantified-body)
+                  (map nil #'rec (enumerate-quantifier params quantified-body)))
+                 ((list* 'when condition effect)
+                  (push (cons (compile-adl-condition condition) effect)
+                        conditional-effect-pairs))
+                 ((list (or 'assign 'increase 'decrease 'scale-up 'scale-down) _ _)
+                  (push body fluents))
+                 ((list 'not _)
+                  (push body del))
+                 (_
+                  (push body add)))))
+      (rec body)
+      (values `(and ,@del ,@add ,@fluents)
+              conditional-effect-pairs))))
+
+(defun %flatten-conditional-effects (simple-precond simple-effects conditional-effect-pairs)
+  (ematch conditional-effect-pairs
+    ((list* (cons condition effects) rest)
+     (append (%flatten-conditional-effects `(and ,simple-precond ,condition)
+                                           `(and ,simple-effects ,effects)
+                                           rest)
+             (%flatten-conditional-effects `(and ,simple-precond
+                                                 ,(compile-negative-condition `(not ,condition)))
+                                           simple-effects
+                                           rest)))
+    (nil
+     (list (cons simple-precond simple-effects)))))
+

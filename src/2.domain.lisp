@@ -19,7 +19,9 @@
 
 ;; It does not trust any of the metadata defined in the sections.
 (defvar *requirements*)
-(defvar *types*)
+(defvar *types* nil
+  "an alist of (type . supertypes). supertypes is a list containing _ALL_ supertypes of the type. E.g.
+  *types* = ((truck . (car object))) == ((truck car object)). ")
 (defvar *objects*)
 (defvar *predicates*)
 (defvar *numeric-fluents*)
