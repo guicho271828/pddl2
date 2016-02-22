@@ -45,19 +45,19 @@
 
 (defun fact-based-exploration (init)
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
-  (let* ((queue (copy-list init))
-         (last (last queue))
+  (let* ((queue (make-trie init))
          (reachable (make-trie nil))
          (instantiated-actions (make-trie nil)))
     (flet ((enqueue (thing)
              (format t "~&Enqueuing ~a . remaining: ~a ~&" thing queue)
-             (let ((new (cons thing nil)))
-               (setf (cdr last) new
-                     last new))))
+             (setf queue (merge-trie queue (make-trie (list thing)))))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2)))))
       (iter (while queue)
             (setf reachable
                   (merge-trie reachable
-                              (make-trie (list (pop queue)))))
+                              (make-trie (list (dequeue)))))
             (for gas = (mappend (lambda (a)
                                   (ground-actions a reachable))
                                 *actions*))

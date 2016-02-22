@@ -215,5 +215,5 @@
 (test ground-problem3
   (finishes
     (read-pddl (merge-pathnames "t/test2/domain.pddl" *default-pathname-defaults*))
-    (read-pddl (merge-pathnames "t/test/pfile1.pddl" *default-pathname-defaults*))
+    (read-pddl (merge-pathnames "t/test2/pfile1.pddl" *default-pathname-defaults*))
     (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))
