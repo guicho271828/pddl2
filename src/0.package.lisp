@@ -19,5 +19,21 @@
            :SYMBOL-DOMAIN
            :DOMAIN-BOUNDP
            :SYMBOL-PROBLEM
-           :PROBLEM-BOUNDP))
+           :PROBLEM-BOUNDP
+           :*requirements*
+           :*types*
+           :*objects*
+           :*predicates*
+           :*numeric-fluents*
+           :*object-fluents*
+           :*axioms*
+           :*actions*
+           :*domain*
+           :*domain-name*
+           :*init*
+           :*metric*
+           :*ground-numeric-fluents*
+           :*ground-object-fluents*
+           :flatten-action
+           :-))
 
