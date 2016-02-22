@@ -40,6 +40,8 @@
     ;; removing disjunctive conditions
     (setf *actions* (really-process-actions *actions*))
     (setf *axioms*  (really-process-axioms *axioms*))
+    (setf *ground-actions* (ground-actions *actions*))
+    (setf *ground-axioms*  (ground-axioms *axioms*))
     ;; grounding actions, axioms and functions
     (let ((*print-length* 8))
       (print (list
