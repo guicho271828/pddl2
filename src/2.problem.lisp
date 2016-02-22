@@ -138,7 +138,8 @@
                           :parameters param-names
                           :precondition (lift-or `(and ,precond))
                                         ; ensuring being wrapped by AND
-                          :effect effects)))
+                          ;; use the side effect of lift-or: AND is unified
+                          :effect (lift-or `(and ,effects)))))
                  (%flatten-conditional-effects simple-precond
                                                static-effects
                                                conditional-effect-pairs)))))))

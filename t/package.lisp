@@ -157,6 +157,7 @@
        :test #'equalp))
   (untrace make-trie trie= trie-member))
 
+#+nil
 (test ground-problem
   (for-all ((problem
              (with-hash-table-iterator (it *problem-table*)
@@ -168,3 +169,33 @@
         (finishes
           (apply #'ground-problem problem))
         (pass "finished"))))
+
+(test ground-problem1
+  (finishes
+    (define (domain testdomain)
+      (:predicates (at ?x) (connected ?x ?y))
+      (:action move
+               :parameters (?x ?y)
+               :precondition (and (at ?x)
+                                  (connected ?x ?y))
+               :effect (and (not (at ?x))
+                            (at ?y))))
+    (define (problem testproblem)
+      (:domain testdomain)
+      (:objects a b c)
+      (:init (at a) (connected a b) (connected b c))
+      (:goal (at c)))
+    (apply #'ground-problem (symbol-problem 'testproblem))))
+
+(test ground-problem2
+  (finishes
+    (read-pddl (merge-pathnames "t/test/domain.pddl" *default-pathname-defaults*))
+    (read-pddl (merge-pathnames "t/test/probBLOCKS-4-0.pddl" *default-pathname-defaults*))
+    (apply #'ground-problem (symbol-problem 'BLOCKS-4-0))))
+
+
+(test ground-problem3
+  (finishes
+    (read-pddl (merge-pathnames "t/test2/domain.pddl" *default-pathname-defaults*))
+    (read-pddl (merge-pathnames "t/test/pfile1.pddl" *default-pathname-defaults*))
+    (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))

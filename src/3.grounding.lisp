@@ -23,11 +23,11 @@
                        *ground-object-fluents*)
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
-  
-  (print
-   (reachable-predicates
-    (print
-     (make-trie *init*))))
+  (fact-based-exploration *init*)
+  ;; (print
+  ;;  (reachable-predicates
+  ;;   (print
+  ;;    (make-trie *init*))))
   ;; (print
   ;;  (make-trie *ground-numeric-fluents*))
   ;; (print
@@ -43,13 +43,14 @@
 ;;                        *axioms*))
 
 
-(defun fact-based-exploration ()
+(defun fact-based-exploration (init)
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
-  (let* ((queue (copy-list *init*))
+  (let* ((queue (copy-list init))
          (last (last queue))
          (reachable (make-trie nil))
-         (ground-actions (make-trie nil)))
+         (instantiated-actions (make-trie nil)))
     (flet ((enqueue (thing)
+             (format t "~&Enqueuing ~a . remaining: ~a ~&" thing queue)
              (let ((new (cons thing nil)))
                (setf (cdr last) new
                      last new))))
@@ -58,14 +59,18 @@
                   (merge-trie reachable
                               (make-trie (list (pop queue)))))
             (for gas = (mappend (lambda (a)
-                                  (new-applicable-action-skeletons a reachable ground-actions))
+                                  (ground-actions a reachable))
                                 *actions*))
-            (map nil (compose #'enqueue #'add-effects) gas)
-            (setf ground-actions
-                  (merge-trie ground-actions
-                              (make-trie gas)))))))
+            (dolist (ga gas)
+              (dolist (ae (add-effects ga))
+                (unless (trie-member ae reachable)
+                  (enqueue ae))))
+            (setf instantiated-actions
+                  (merge-trie instantiated-actions
+                              (make-trie gas))))
+      (values reachable instantiated-actions))))
 
-(defun new-applicable-action-skeletons (action reachable ground-actions)
+(defun ground-actions (action reachable)
   "action definition, trie of facts, trie of action skeletons"
   (ematch action
     ((list name
@@ -73,53 +78,83 @@
            :precondition (list* 'or rest)
            :effect eff)
      (mappend (lambda (precond)
-                (new-applicable-action-skeletons (list name
-                                                       :parameters params
-                                                       :precondition precond
-                                                       :effect eff)
-                                                 reachable ground-actions))
+                (ground-actions (list name
+                                      :parameters params
+                                      :precondition precond
+                                      :effect eff)
+                                reachable))
               rest))
     (_
-     (%applicable-bindings action reachable ground-actions))))
+     (%applicable-bindings action reachable nil))))
 
-
-
-(defvar *bindings*)
-(defun %applicable-bindings (action reachable ground-actions)
+(defun %applicable-bindings (action reachable bindings)
   ;; list, list, trie, trie, trie
-  ;; (unload-truck ?pkg ?place1 ?place2)
-  ;; (at ?package ?place1)
-  ;; (package ?package)
-  ;; (place ?place1)
-  (match* (action reachable)
-    (((list* name
-            :parameters nil
-            :precondition _)
-      _)
-     (list *bindings*))
-    (((list name
-            :parameters params
-            :precondition (list* 'and (list* p-head p-params) _)
-            :effect eff)
-      ;; trivia's assoc pattern
-      (assoc p-head trie))
-     ;; start backtrack
-     (let (acc)
-       (map-trie (lambda (args)
-                   ;; new binding
-                   (let* ((new-bindings (remove-if-not #'variablep
-                                                       (mapcar #'cons p-params args)
-                                                       :key #'car))
-                          (newaction (reduce #'bind-action new-bindings :initial-value action))
-                          (*bindings* (append *bindings* new-bindings)))
-                     (appendf acc (%applicable-bindings newaction reachable ground-actions))))
-                 trie)
-       acc))))
+  (match action
+    ((list* name :parameters nil _)
+     (list (cons name (reverse bindings))))
+    (_
+     (iter (for (o . type) in *objects*)
+           ;; ignore type
+           (let ((partial (bind-action1 action o)))
+             (when (check-action partial reachable)
+               (appending (%applicable-bindings partial reachable (cons o bindings)))))))))
 
 
-;;; enumerate reachable predicates
+(defun bind-action1 (action object)
+  "bind the first parameter"
+  (ematch action
+    ((list name
+           :parameters (list* parameter rest)
+           :precondition precond
+           :effect eff)
+     (list name
+           :parameters rest
+           :precondition (subst object parameter precond)
+           :effect (subst object parameter eff)))))
 
-(defcached bind-action (action binding)
+(defun check-action (action reachable)
+  "Returns T if all bound arguments matches some the reachable fact"
+  (ematch action
+    ((list* _
+            :parameters _
+            :precondition (list* 'and precond) _)
+     (labels ((test-parameter (params obj-trie)
+                (ematch params
+                  (nil t)
+                  ((list* p ps)
+                   (if (variablep p)
+                       (iter (for (obj . obj-subtrie) in obj-trie)
+                             (always
+                              (test-parameter ps obj-subtrie)))
+                       (when-let ((found (assoc p obj-trie)))
+                         (test-parameter ps (cdr found))))))))
+       (iter (for (head . params) in precond)
+             (for obj-trie = (cdr (assoc head reachable)))
+             (always
+              (test-parameter params obj-trie)))))))
+
+;;; extract the effect
+
+(defun add-effects (gaction)
+  (ematch gaction
+    ((list* name objs)
+     (ematch (reduce #'bind-action1 objs :initial-value (assoc name *actions*))
+       ((list _
+              :parameters nil
+              :precondition _
+              :effect (list* 'and effects))
+        (remove-if (lambda-match
+                     ((list* (or 'not 'assign 'increase 'decrease 'scale-up 'scale-down) _)
+                      t))
+                   effects))))))
+
+
+
+
+;;; old
+
+(defun bind-action-old (action binding)
+  ;; binding : (param . obj)
   (ematch* (action binding)
     (((list name
            :parameters params
@@ -131,20 +166,3 @@
            :parameters (remove parameter params)
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
-
-
-
-
-
-;; (defun reachable-predicates (trie)
-  
-
-
-;; (action-layer init)
-
-(defun action-layer (propositions)
-  )
-
-(defun fact-layer (propositions actions)
-  )
-
