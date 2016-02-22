@@ -102,11 +102,11 @@
                   (collect `(,type ,p))))))
 
 (defmethod process-clause ((clause (eql :goal)) body)
-  (push *actions*
-        `(:action *goal*
+  (push `(:goal
           :parameters ()
-          :precondition ,body
-          :effect (and))))
+          :precondition ,@body
+          :effect (and))
+        *actions*))
 
 (defmethod process-clause ((clause (eql :metric)) body)
   (setf *metric* body))
