@@ -151,9 +151,9 @@
            (lambda (&rest args)
              (iter (with body = quantified-body)
                    (for p in (mapcar #'first params))
-                   (iter (for o in (print args))
-                         (print (setf body (subst o p body)))
-                         (finally (return body)))))
+                   (for o in args)
+                   (setf body (subst o p body))
+                   (finally (return body))))
            matched)))
 
 (defun compile-adl-condition (condition)
