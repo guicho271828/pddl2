@@ -53,7 +53,8 @@
               *numeric-fluents*
               *object-fluents*
               *axioms*
-              *actions*)))))
+              *actions*
+              *current-pathname*)))))
 
 ;;; requirement
 

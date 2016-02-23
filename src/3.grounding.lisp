@@ -20,9 +20,11 @@
                        *init*
                        *metric*
                        *ground-numeric-fluents*
-                       *ground-object-fluents*)
+                       *ground-object-fluents*
+                       *current-pathname*)
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
+  (format t "~%grounding a problem ~a" *current-pathname*)
   (fact-based-exploration *init*)
   ;; (print
   ;;  (reachable-predicates

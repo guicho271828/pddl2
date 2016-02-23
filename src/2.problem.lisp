@@ -48,7 +48,8 @@
                    *init*
                    *metric*
                    *ground-numeric-fluents*
-                   *ground-object-fluents*)))))
+                   *ground-object-fluents*
+                   *current-pathname*)))))
 
 ;;; process clauses
 (defmethod process-clause ((clause (eql :domain)) body)
