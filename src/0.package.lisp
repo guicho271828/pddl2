@@ -43,10 +43,11 @@
            :ground-problem
            :make-trie
            :merge-trie
-           :trie=
            :trie-member
            :lift-or
            :variablep
            :map-trie
-           :pop-trie))
+           :pop-trie
+           :trie-equal
+           :trie-subsetp))
 

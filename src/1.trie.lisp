@@ -29,12 +29,17 @@
             (push subtrie2 acc)))
     acc))
 
-(defun trie= (t1 t2)
-  (iter (for subtrie2 in t2)
-        (for (head . rest) = subtrie2)
+(defun trie-subsetp (t1 t2)
+  "t1 is a subset of t2"
+  (iter (for subtrie1 in t1)
+        (for (head . rest) = subtrie1)
         (always
-         (when-let ((subtrie1 (assoc head t1)))
-           (trie= (cdr subtrie1) rest)))))
+         (when-let ((subtrie2 (assoc head t2)))
+           (trie-subsetp rest (cdr subtrie2))))))
+
+(defun trie-equal (t1 t2)
+  (and (trie-subsetp t1 t2)
+       (trie-subsetp t2 t1)))
 
 (defun trie-member (list trie)
   (match list
