@@ -113,26 +113,27 @@
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
 
+(defun test-parameter (head params obj-trie)
+  (ematch params
+    (nil t)
+    ((list* p ps)
+     (if (variablep p)
+         (iter (for (obj . obj-subtrie) in obj-trie)
+               (always
+                (test-parameter head ps obj-subtrie)))
+         (when-let ((found (assoc p obj-trie)))
+           (test-parameter head ps (cdr found)))))))
+
 (defun check-action (action reachable)
   "Returns T if all bound arguments matches some the reachable fact"
   (ematch action
     ((list* _
             :parameters _
             :precondition (list* 'and precond) _)
-     (labels ((test-parameter (params obj-trie)
-                (ematch params
-                  (nil t)
-                  ((list* p ps)
-                   (if (variablep p)
-                       (iter (for (obj . obj-subtrie) in obj-trie)
-                             (always
-                              (test-parameter ps obj-subtrie)))
-                       (when-let ((found (assoc p obj-trie)))
-                         (test-parameter ps (cdr found))))))))
-       (iter (for (head . params) in precond)
-             (for obj-trie = (cdr (assoc head reachable)))
-             (always
-              (test-parameter params obj-trie)))))))
+     (iter (for (head . params) in precond)
+           (if (negativep head)
+               (always (not (test-parameter head params (cdr (assoc (~ head) reachable)))))
+               (always (test-parameter head params (cdr (assoc head reachable)))))))))
 
 ;;; extract the effect
 
