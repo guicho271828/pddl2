@@ -131,6 +131,7 @@
               result))))))
 
 (defun flatten-action (proto-action)
+  "Compile OR, NOT, FORALL, EXISTS, IMPLY, WHEN"
   (ematch proto-action
     ((list name
            :parameters params
@@ -157,6 +158,7 @@
                                                conditional-effect-pairs)))))))
 
 (defun enumerate-quantifier (params quantified-body)
+  "Compiles the body of FORALL and EXISTS"
   (let* ((params (parse-typed-list params t))
          (matched (iter (for (p . type) in params)
                         (collect
@@ -299,6 +301,7 @@
   (mappend #'flatten-axiom proto-actions))
 
 (defun flatten-axiom (proto-axiom)
+  "Compile OR, NOT, FORALL, EXISTS, IMPLY, WHEN"
   (ematch proto-axiom
     ((list (list* name params) condition)
      (let* ((params (parse-typed-list params t))
