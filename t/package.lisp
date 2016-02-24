@@ -83,7 +83,7 @@
                    (forall (?d - place) (not (foo ?d))))))))))
 
 (test trie
-  (trace make-trie trie-equal trie-member)
+  (trace make-trie trie-equal trie-member push-trie)
   (unwind-protect
       (progn
   (finishes (make-trie '()))
@@ -174,8 +174,16 @@
                         (prog1 r1
                                (setf trie r2)))))
          :test #'equalp))
-          (is (trie-equal trie (make-trie nil)))))
-    (untrace make-trie trie-equal trie-member)))
+          (is (trie-equal trie (make-trie nil))))
+        (let ((trie1 (make-trie '((a x y)
+                                  (c a x y)
+                                  (a x z))))
+              (trie2 (make-trie '((a x y)
+                                  (c a x y)))))
+          (is-false (trie-equal trie1 trie2))
+          (push-trie '(a x z) trie2)
+          (is (trie-equal trie1 trie2))))
+    (untrace make-trie trie-equal trie-member push-trie)))
 
 
 (test ground-problem1

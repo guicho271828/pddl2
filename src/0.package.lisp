@@ -48,6 +48,7 @@
            :variablep
            :map-trie
            :pop-trie
+           :push-trie
            :trie-equal
            :trie-subsetp))
 
