@@ -19,6 +19,9 @@
            ;; :minimize
            ;; :maximize
            :total-cost
+           :forall
+           :exists
+           :imply
            :SYMBOL-DOMAIN
            :DOMAIN-BOUNDP
            :SYMBOL-PROBLEM

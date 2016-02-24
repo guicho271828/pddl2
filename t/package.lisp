@@ -216,6 +216,26 @@
     (read-pddl (merge-pathnames "t/test2/pfile1.pddl" *default-pathname-defaults*))
     (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))
 
+(test ground-problem1-forall
+  (finishes
+    (define (domain testdomain-adl)
+      (:predicates (at ?x) (connected ?x ?y) (true ?x))
+      (:action move
+               :parameters (?x ?y)
+               :precondition (and (at ?x)
+                                  (exists (?z) (true ?z))
+                                  (not (at ?y))
+                                  (connected ?x ?y))
+               :effect (and (not (at ?x))
+                            (forall (?z) (not (true ?z)))
+                            (at ?y))))
+    (define (problem testproblem-adl)
+      (:domain testdomain-adl)
+      (:objects a b c)
+      (:init (at a) (connected a b) (connected b c) (true c))
+      (:goal (at c)))
+    (apply #'ground-problem (symbol-problem 'testproblem-adl))))
+
 (test ground-problem1-neg
   (finishes
     (define (domain ~testdomain)

@@ -141,7 +141,7 @@
             (param-names (mapcar #'car params))
             (type-predicates (types-as-predicates params))
             (simple-precond
-             ;; or, exist, imply, forall are compiled into axioms
+             ;; or, exists, imply, forall are compiled into axioms
              (compile-adl-condition `(and ,@type-predicates ,precond))))
        (multiple-value-bind (static-effects conditional-effect-pairs) (parse-effect eff)
          (format t "~& ~a conditional effects in ~a" (length conditional-effect-pairs) name)
@@ -293,7 +293,7 @@
             (param-names (mapcar #'car params))
             (type-predicates (types-as-predicates params))
             (simple-condition
-             ;; or, exist, imply, forall are compiled into axioms
+             ;; or, exists, imply, forall are compiled into axioms
              (compile-adl-condition `(and ,@type-predicates ,condition))))
        `((,name ,param-names)
          ,simple-condition)))))
