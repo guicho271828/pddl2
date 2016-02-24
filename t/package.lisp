@@ -83,99 +83,107 @@
                    (forall (?d - place) (not (foo ?d))))))))))
 
 (test trie
-  (trace make-trie trie-equal trie-member)
+  (trace make-trie trie-equal trie-member push-trie)
   (unwind-protect
       (progn
-  (finishes (make-trie '()))
-  (finishes
-    (make-trie '((a x y)
-                 (b x y z)
-                 (a x z)
-                 (b x z y))))
-  (finishes (make-trie '((a) (b))))
-  (finishes (make-trie '((a) (a))))
-  (finishes
-    (merge-trie (print (make-trie '((a x y))))
-                (print (make-trie '((a x z))))))
-  (is-true
+        (finishes (make-trie '()))
+        (finishes
+          (make-trie '((a x y)
+                       (b x y z)
+                       (a x z)
+                       (b x z y))))
+        (finishes (make-trie '((a) (b))))
+        (finishes (make-trie '((a) (a))))
+        (finishes
+          (merge-trie (print (make-trie '((a x y))))
+                      (print (make-trie '((a x z))))))
+        (is-true
          (trie-equal (make-trie '())
-          (make-trie '())))
-  (is-true
+                     (make-trie '())))
+        (is-true
          (trie-equal (make-trie '((a x y)))
-          (make-trie '((a x y)))))
-  (is-true
+                     (make-trie '((a x y)))))
+        (is-true
          (trie-equal (make-trie '((a x y)
-                       (a x z)))
-          (make-trie '((a x z)
-                       (a x y)))))
-  (is-true
+                                  (a x z)))
+                     (make-trie '((a x z)
+                                  (a x y)))))
+        (is-true
          (trie-equal (make-trie '((a x y)
+                                  (c a x y)
+                                  (a x z)))
+                     (make-trie '((a x z)
+                                  (a x y)
+                                  (c a x y)))))
+        (is-true
+         (trie-member
+          '(c a x y)
+          (make-trie '((a x y)
                        (c a x y)
-                       (a x z)))
-          (make-trie '((a x z)
-                       (a x y)
-                       (c a x y)))))
-  (is-true
-   (trie-member
-    '(c a x y)
-    (make-trie '((a x y)
+                       (a x z)))))
+        (is-false
+         (trie-member
+          '(c a x z)
+          (make-trie '((a x y)
+                       (c a x y)
+                       (a x z)))))
+        (is-false
+         (trie-member
+          nil
+          (make-trie '((a x y)
+                       (c a x y)
+                       (a x z)))))
+        (is-false
+         (trie-member
+          '(b)
+          (make-trie '((a x y)
+                       (c a x y)
+                       (a x z)))))
+        (is-false
+         (trie-member
+          '(a x)
+          (make-trie '((a x y)
+                       (c a x y)
+                       (a x z)))))
+        (is (set-equal
+             '((a x y)
+               (c a x y)
+               (a x z))
+             (let (acc)
+               (map-trie (lambda (args)
+                           (push args acc))
+                         (make-trie '((a x y)
+                                      (c a x y)
+                                      (a x z))))
+               acc)
+             :test #'equalp))
+        (let ((trie (make-trie '((a x y)
+                                 (c a x y)
+                                 (a x z)))))
+          (is (set-equal
+               '((a x y)
                  (c a x y)
-                 (a x z)))))
-  (is-false
-   (trie-member
-    '(c a x z)
-    (make-trie '((a x y)
-                 (c a x y)
-                 (a x z)))))
-  (is-false
-   (trie-member
-    nil
-    (make-trie '((a x y)
-                 (c a x y)
-                 (a x z)))))
-  (is-false
-   (trie-member
-    '(b)
-    (make-trie '((a x y)
-                 (c a x y)
-                 (a x z)))))
-  (is-false
-   (trie-member
-    '(a x)
-    (make-trie '((a x y)
-                 (c a x y)
-                 (a x z)))))
-  (is (set-equal
-       '((a x y)
-         (c a x y)
-         (a x z))
-       (let (acc)
-         (map-trie (lambda (args)
-                     (push args acc))
-                   (make-trie '((a x y)
-                                (c a x y)
-                                (a x z))))
-         acc)
-       :test #'equalp))
-  (let ((trie (make-trie '((a x y)
-                           (c a x y)
-                           (a x z)))))
-    (is (set-equal
-         '((a x y)
-           (c a x y)
-           (a x z))
-         (print (list (multiple-value-bind (r1 r2) (pop-trie trie)
-                        (prog1 r1
-                               (setf trie r2)))
-                      (multiple-value-bind (r1 r2) (pop-trie trie)
-                        (prog1 r1
-                               (setf trie r2)))
-                      (multiple-value-bind (r1 r2) (pop-trie trie)
-                        (prog1 r1
-                               (setf trie r2)))))
-         :test #'equalp))
-          (is (trie-equal trie (make-trie nil)))))
-    (untrace make-trie trie-equal trie-member)))
+                 (a x z))
+               (print (list (multiple-value-bind (r1 r2) (pop-trie trie)
+                              (prog1 r1
+                                     (setf trie r2)))
+                            (multiple-value-bind (r1 r2) (pop-trie trie)
+                              (prog1 r1
+                                     (setf trie r2)))
+                            (multiple-value-bind (r1 r2) (pop-trie trie)
+                              (prog1 r1
+                                     (setf trie r2)))))
+               :test #'equalp))
+          (is (trie-equal trie (make-trie nil))))
+        (let ((trie1 (make-trie '((a x y)
+                                  (c a x y)
+                                  (a x z))))
+              (trie2 (make-trie '((a x y)
+                                  (c a x y)))))
+          (is-false (trie-equal trie1 trie2))
+          (push-trie '(a x z) trie2)
+          (is (trie-equal trie1 trie2))))
+    (untrace make-trie trie-equal trie-member push-trie)))
 
 
 (test ground-problem1
@@ -226,7 +234,7 @@
       (:goal (at c)))
     (apply #'ground-problem (symbol-problem '~testproblem))))
 
-
+#+nil
 (test ground-problem4
   (for-all ((problem
              (with-hash-table-iterator (it *problem-table*)

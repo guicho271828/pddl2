@@ -76,3 +76,26 @@
         (values (nreverse result)
                 r2)))))
 
+(defun %trie1 (list)
+  (match list
+    (nil
+     nil)
+    ((cons head nil)
+     (list head))
+    ((cons head rest)
+     (list head (%trie1 rest)))))
+
+(defun push-trie (thing trie)
+  "destructively modifies trie to insert a list THING"
+  (labels ((rec (thing trie)
+             (ematch thing
+               (nil
+                nil)
+               ((cons head rest)
+                (if-let ((subtrie (assoc head trie)))
+                  (rec rest (cdr subtrie))
+                  (push (%trie1 thing) (cdr trie)))))))
+    (if trie
+        (rec thing trie)
+        (list (%trie1 thing)))
+    trie))
