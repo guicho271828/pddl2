@@ -83,7 +83,7 @@
                    (forall (?d - place) (not (foo ?d))))))))))
 
 (test trie
-  (trace make-trie trie= trie-member)
+  (trace make-trie trie-equal trie-member)
   (unwind-protect
       (progn
   (finishes (make-trie '()))
@@ -98,18 +98,18 @@
     (merge-trie (print (make-trie '((a x y))))
                 (print (make-trie '((a x z))))))
   (is-true
-   (trie= (make-trie '())
+         (trie-equal (make-trie '())
           (make-trie '())))
   (is-true
-   (trie= (make-trie '((a x y)))
+         (trie-equal (make-trie '((a x y)))
           (make-trie '((a x y)))))
   (is-true
-   (trie= (make-trie '((a x y)
+         (trie-equal (make-trie '((a x y)
                        (a x z)))
           (make-trie '((a x z)
                        (a x y)))))
   (is-true
-   (trie= (make-trie '((a x y)
+         (trie-equal (make-trie '((a x y)
                        (c a x y)
                        (a x z)))
           (make-trie '((a x z)
@@ -174,8 +174,9 @@
                         (prog1 r1
                                (setf trie r2)))))
          :test #'equalp))
-          (is (trie= trie (make-trie nil)))))
-    (untrace make-trie trie= trie-member)))
+          (is (trie-equal trie (make-trie nil)))))
+    (untrace make-trie trie-equal trie-member)))
+
 
 (test ground-problem1
   (finishes
