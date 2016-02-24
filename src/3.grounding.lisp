@@ -51,7 +51,7 @@
          (instantiated-actions (make-trie nil)))
     (flet ((enqueue (thing)
              (format t "~&Enqueuing ~a . remaining: ~a ~&" thing queue)
-             (setf queue (merge-trie queue (make-trie (list thing)))))
+             (push-trie thing queue))
            (dequeue ()
              (multiple-value-bind (r1 r2) (pop-trie queue)
                (prog1 r1 (setf queue r2)))))
