@@ -15,7 +15,9 @@
            :object
            :UNBOUND-PROBLEM
            :UNBOUND-DOMAIN
-           :minimize
+           ;; Do not export; annoying conflict with iterate. Compare with string=
+           ;; :minimize
+           ;; :maximize
            :total-cost
            :SYMBOL-DOMAIN
            :DOMAIN-BOUNDP
