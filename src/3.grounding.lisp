@@ -15,7 +15,6 @@
                        *axioms*
                        *actions*
                        ;;
-                       *domain*
                        *domain-name*
                        *init*
                        *metric*

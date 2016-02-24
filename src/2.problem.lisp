@@ -2,7 +2,6 @@
 ;;; package
 (in-package :pddl2.impl)
 
-(defvar *domain*)
 (defvar *domain-name*)
 
 (defvar *init*)
@@ -20,8 +19,7 @@
         *object-fluents*
         *axioms*
         *actions*
-        ;; 
-        *domain*
+        ;;
         *domain-name*
         *init*
         *metric*
@@ -43,7 +41,6 @@
                    *axioms*
                    *actions*
                    ;;
-                   *domain*
                    *domain-name*
                    *init*
                    *metric*
@@ -55,8 +52,7 @@
 (defmethod process-clause ((clause (eql :domain)) body)
   (ematch body
     ((list domain-name)
-     (setf *domain* (symbol-domain domain-name)
-           *domain-name* domain-name
+     (setf *domain-name* domain-name
            (values *requirements*
                    *types*
                    *objects*
@@ -65,7 +61,7 @@
                    *object-fluents*
                    *axioms*
                    *actions*)
-           (values-list *domain*)))))
+           (values-list (symbol-domain domain-name))))))
 
 (defmethod process-clause ((clause (eql :objects)) body)
   ;; apppend to the constants
