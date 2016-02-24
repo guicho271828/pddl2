@@ -84,6 +84,8 @@
 
 (test trie
   (trace make-trie trie= trie-member)
+  (unwind-protect
+      (progn
   (finishes (make-trie '()))
   (finishes
     (make-trie '((a x y)
@@ -172,8 +174,8 @@
                         (prog1 r1
                                (setf trie r2)))))
          :test #'equalp))
-    (is (trie= trie (make-trie nil))))
-  (untrace make-trie trie= trie-member))
+          (is (trie= trie (make-trie nil)))))
+    (untrace make-trie trie= trie-member)))
 
 (test ground-problem1
   (finishes
