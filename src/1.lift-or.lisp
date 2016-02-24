@@ -1,13 +1,20 @@
 ;;; package
 (in-package :pddl2.impl)
 
+(defpattern op (x)
+  `(and ,x (or 'and 'or)))
+
 (defun make-condition-binary (condition)
   (match condition
-    ((list (and x (or 'or 'and)) y z)
+    ((list (op _))
+     condition)
+    ((list (op _) y)
+     (make-condition-binary y))
+    ((list (op x) y z)
      (list x
            (make-condition-binary y)
            (make-condition-binary z)))
-    ((list* (and x (or 'or 'and)) y z rest)
+    ((list* (op x) y z rest)
      (make-condition-binary
       (list* x (list x
                      (make-condition-binary y)
@@ -41,9 +48,6 @@
        ((x nil)
         (disjunction-conjunction `(and ,x ,y)))))
     (_ (values condition t))))
-
-(defpattern op (x)
-  `(and ,x (or 'and 'or)))
 
 (defun flatten-condition (condition)
   (match condition
