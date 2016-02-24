@@ -101,7 +101,7 @@
                       (collect `(,type ,p))))))))
 
 (defmethod process-clause ((clause (eql :goal)) body)
-  (push `(:goal
+  (push `(*goal*
           :parameters ()
           :precondition ,@body
           :effect (and))

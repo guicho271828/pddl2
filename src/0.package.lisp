@@ -32,6 +32,7 @@
            :*domain*
            :*domain-name*
            :*init*
+           :*goal*
            :*metric*
            :*ground-numeric-fluents*
            :*ground-object-fluents*
