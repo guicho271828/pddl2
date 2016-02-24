@@ -24,7 +24,7 @@
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a" *current-pathname*)
-  (fact-based-exploration *init*)
+  (print (fact-based-exploration *init*))
   ;; (print
   ;;  (reachable-predicates
   ;;   (print
@@ -50,11 +50,14 @@
          (reachable (make-trie nil))
          (instantiated-actions (make-trie nil)))
     (flet ((enqueue (thing)
+             #+nil
              (format t "~&Enqueuing ~a . remaining: ~a ~&" thing queue)
              (push-trie thing queue))
            (dequeue ()
              (multiple-value-bind (r1 r2) (pop-trie queue)
-               (prog1 r1 (setf queue r2)))))
+               (prog1 r1 (setf queue r2)
+                      #+nil
+                      (format t "~&Deque ~a . remaining: ~a ~&" r1 queue)))))
       (iter (while queue)
             (setf reachable
                   (merge-trie reachable
