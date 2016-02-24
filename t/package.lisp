@@ -32,6 +32,9 @@
       (read-pddl path))))
 
 (test problems
+  #+sbcl
+  (setf (sb-ext:bytes-consed-between-gcs)
+        (* 1024 1024 100)) ;; MB
   (for-all ((path (let ((domains (split-sequence
                                   #\Newline
                                   (uiop:run-program (format nil "find ~a -name '*.pddl' | grep -v domain"
@@ -44,7 +47,9 @@
       (handler-case
           (read-pddl path)
         (unbound-domain ()
-          nil)))))
+          nil)))
+    #+sbcl
+    (sb-ext:gc :full t)))
 
 
 
