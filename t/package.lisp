@@ -212,8 +212,10 @@
       (:domain testdomain)
       (:objects a b c)
       (:init (at a) (connected a b) (connected b c))
-      (:goal (at c)))
-    (apply #'ground-problem (symbol-problem 'testproblem))))
+      (:goal (at c))))
+  (is (trie-equal (make-trie '((at a) (at b) (at c)
+                               (connected a b) (connected b c)))
+                  (apply #'ground-problem (symbol-problem 'testproblem)))))
 
 (test ground-problem2
   (finishes
