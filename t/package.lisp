@@ -266,6 +266,33 @@
      (apply #'ground-problem
             (read-pddl (rel "t/test3/p03.pddl"))))))
 
+(test benchmark-heavy
+  ;; cd /home/guicho/repos/lisp/pddl2/t/classical/nomystery-opt11-strips
+  ;; time ~/repos/lisp/mwup/downward/translate/translate.py domain.pddl p17.pddl
+  ;; Runtime by FD's translate.py:
+  ;; real	0m2.686s
+  ;; user	0m2.372s
+  ;; sys	0m0.084s
+  (format t "this benchmark could take about 2 min.")
+  ;; initially
+  ;; Evaluation took:
+  ;;   123.177 seconds of real time
+  ;;   121.148000 seconds of total run time (120.976000 user, 0.172000 system)
+  ;;   [ Run times consist of 0.684 seconds GC time, and 120.464 seconds non-GC time. ]
+  ;;   98.35% CPU
+  ;;   369,551,213,802 processor cycles
+  ;;   9,879,499,280 bytes consed
+  ;; finally
+  ;; Evaluation took:
+  ;;   5.656 seconds of real time
+  ;;   5.344000 seconds of total run time (5.328000 user, 0.016000 system)
+  ;;   [ Run times consist of 0.072 seconds GC time, and 5.272 seconds non-GC time. ]
+  ;;   94.48% CPU
+  ;;   16,970,251,797 processor cycles
+  ;;   1,077,361,888 bytes consed
+  (finishes
+   (time
+    (apply #'ground-problem (symbol-problem 'transport-l10-t1-p9---int100n150-m25---int100c110---s1---e0)))))
 
 
 
