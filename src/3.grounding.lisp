@@ -186,14 +186,23 @@
        ((list _
               :parameters nil
               :precondition _
-              :effect (list* 'and effects))
-        (remove-if (lambda-match
-                     ((list* (or 'not 'assign 'increase 'decrease 'scale-up 'scale-down) _)
-                      t))
-                   effects))))))
-
-
-
+              :effect effects)
+        (let (acc)
+          (labels ((walk-effect (condition)
+                     (ematch condition
+                       ((list* 'and conditions)
+                        (every #'walk-effect conditions))
+                       ((or (list 'not (list* (or 'and 'or 'forall 'exists 'imply) _))
+                            (list* (or 'or 'exists 'imply) _))
+                        (error "invalid effect: ~a" condition))
+                       ((list* (and op (or 'forall 'when)) _)
+                        (error "~A should have been compiled away?: ~a" op condition))
+                       ((list* (or 'not 'assign 'increase 'decrease 'scale-up 'scale-down) _)
+                        ;; ignore negative effect and costs
+                        nil)
+                       (_ (push condition acc)))))
+            (walk-effect effects)
+            acc)))))))
 
 ;;; old
 
