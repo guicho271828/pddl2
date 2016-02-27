@@ -85,7 +85,7 @@
     ((cons head rest)
      (list head (%trie1 rest)))))
 
-(defun push-trie (thing trie)
+(defun %push-trie (thing trie)
   "destructively modifies trie to insert a list THING"
   (labels ((rec (thing trie)
              (ematch thing
@@ -96,6 +96,8 @@
                   (rec rest (cdr subtrie))
                   (push (%trie1 thing) (cdr trie)))))))
     (if trie
-        (rec thing trie)
-        (list (%trie1 thing)))
-    trie))
+        (progn (rec thing trie) trie)
+        (list (%trie1 thing)))))
+
+(defmacro push-trie (thing place)
+  `(setf ,place (%push-trie ,thing ,place)))

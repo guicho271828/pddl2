@@ -88,7 +88,7 @@
                    (forall (?d - place) (not (foo ?d))))))))))
 
 (test trie
-  (trace make-trie trie-equal trie-member push-trie)
+  (trace make-trie trie-equal trie-member)
   (unwind-protect
       (progn
         (finishes (make-trie '()))
@@ -187,8 +187,13 @@
                                   (c a x y)))))
           (is-false (trie-equal trie1 trie2))
           (push-trie '(a x z) trie2)
+          (is (trie-equal trie1 trie2)))
+        (let ((trie1 (make-trie '((a x y))))
+              (trie2 (make-trie nil)))
+          (is-false (trie-equal trie1 trie2))
+          (push-trie '(a x y) trie2)
           (is (trie-equal trie1 trie2))))
-    (untrace make-trie trie-equal trie-member push-trie)))
+    (untrace make-trie trie-equal trie-member)))
 
 (test lift-or2
   (is (equal '(and) (lift-or2 `(and)))))
