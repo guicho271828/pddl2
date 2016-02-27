@@ -59,19 +59,15 @@
                       #+nil
                       (format t "~&Deque ~a . remaining: ~a ~&" r1 queue)))))
       (iter (while queue)
-            (setf reachable
-                  (merge-trie reachable
-                              (make-trie (list (dequeue)))))
+            (push-trie (dequeue) reachable)
             (for gas = (mappend (lambda (a)
                                   (ground-actions a reachable))
                                 *actions*))
             (dolist (ga gas)
+              (push-trie ga instantiated-actions)
               (dolist (ae (add-effects ga))
                 (unless (trie-member ae reachable)
-                  (enqueue ae))))
-            (setf instantiated-actions
-                  (merge-trie instantiated-actions
-                              (make-trie gas))))
+                  (enqueue ae)))))
       (values reachable instantiated-actions))))
 
 (defun ground-actions (action reachable)
