@@ -117,14 +117,47 @@ fact-based-exploration3
 
 (defun ground-actions2 (new-fact p-a-mapping reachable)
   "Compute the set of actions enabled by new-fact"
-  (ematch new-fact
-    ((list* head args)
-     (iter (for (action . params) in (getf p-a-mapping head))
-           (for partial-action = (reduce #'nbind-action
-                                         (mapcar #'cons params args)
-                                         :initial-value (copy-tree action)))
-           (appending
-            (ground-actions partial-action reachable))))))
+
+   (ematch new-fact
+     ((list* head args)
+      (iter outer
+            (for (action . params) in (getf p-a-mapping head))
+            ;; (print args)
+            ;; (print params)
+            (for bindings =
+                 (iter (for p in params)
+                       (for o in args)
+                       (if (variablep p)
+                           (collect (cons p o))
+                           ;; params may contain constants.
+                           (when (not (eq p o))
+                             ;; invalid assignment.
+                             (in outer (next-iteration))))))
+            ;; (print bindings)
+            (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
+            ;; some arguments are partially grounded.
+            ;; For example, ?X of (move ?X ?Y) may be curried here.
+            (for ground-action-skeletons = (ground-actions partial-action reachable))
+            ;; (print ground-action-skeletons)
+            ;; ((move A) (move B)) --- since the parameters given to
+            ;; ground-actions are partial, the results are also partial.
+            ;; thus, we have to restore the original arguments.
+            (iter (for (action-name . args) in ground-action-skeletons)
+                  ;; (print action-name)
+                  ;; (print args)
+                  (for remaining-binding = ; ((?Y . A))
+                       (mapcar #'cons
+                               (ematch partial-action ((list* _ :parameters params _) params))
+                               args))
+                  ;; (print remaining-binding)
+                  (for whole-binding = ; ((?X . C) (?Y . A))
+                       (append bindings remaining-binding))
+                  ;; (print whole-binding)
+                  (in outer
+                      (collect
+                          (cons action-name
+                                (iter (for p in (ematch action ((list* _ :parameters params _) params)))
+                                      (collect (cdr (assoc p whole-binding))))))))))))
 
 
 (defun bind-action (action binding)
