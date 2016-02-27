@@ -12,6 +12,8 @@
         :trivia :alexandria :iterate))
 (in-package :pddl2.test)
 
+(defun rel (pathname)
+  (asdf:system-relative-pathname :pddl2 pathname))
 (defun set-equalp (set1 set2)
   (set-equal set1 set2 :test #'equalp))
 
@@ -24,8 +26,7 @@
   (for-all ((path (let ((domains (split-sequence
                                   #\Newline
                                   (uiop:run-program (format nil "find ~a -name '*domain*'"
-                                                            (merge-pathnames "t/classical/"
-                                                                             *default-pathname-defaults*))
+                                                            (rel "t/classical/"))
                                                     :output '(:string :stripped t)))))
                     (lambda ()
                       (random-elt domains)))))
@@ -39,8 +40,7 @@
   (for-all ((path (let ((domains (split-sequence
                                   #\Newline
                                   (uiop:run-program (format nil "find ~a -name '*.pddl' | grep -v domain"
-                                                            (merge-pathnames "t/classical/"
-                                                                             *default-pathname-defaults*))
+                                                            (rel "t/classical/"))
                                                     :output '(:string :stripped t)))))
                     (lambda ()
                       (random-elt domains)))))
@@ -219,15 +219,15 @@
 
 (test ground-problem2
   (finishes
-    (read-pddl (merge-pathnames "t/test/domain.pddl" *default-pathname-defaults*))
-    (read-pddl (merge-pathnames "t/test/probBLOCKS-4-0.pddl" *default-pathname-defaults*))
+    (read-pddl (rel "t/test/domain.pddl"))
+    (read-pddl (rel "t/test/probBLOCKS-4-0.pddl"))
     (apply #'ground-problem (symbol-problem 'BLOCKS-4-0))))
 
 
 (test ground-problem3
   (finishes
-    (read-pddl (merge-pathnames "t/test2/domain.pddl" *default-pathname-defaults*))
-    (read-pddl (merge-pathnames "t/test2/pfile1.pddl" *default-pathname-defaults*))
+    (read-pddl (rel "t/test2/domain.pddl"))
+    (read-pddl (rel "t/test2/pfile1.pddl"))
     (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))
 
 (test ground-problem1-forall
@@ -257,7 +257,20 @@
                                (true a) (true b) (true c)))
                   (apply #'ground-problem (symbol-problem 'testproblem-adl)))))
 
+(test benchmark
+  (format t "this benchmark could take 5 sec.")
+  (finishes
+    (read-pddl (rel "t/test3/domain.pddl")))
+  (finishes
+    (time
+     (apply #'ground-problem
+            (read-pddl (rel "t/test3/p03.pddl"))))))
 
+
+
+
+
+#+nil
 (test ground-problem4
   (time
    (for-all ((problem
