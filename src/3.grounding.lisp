@@ -28,19 +28,7 @@
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a" *current-pathname*)
-  (print (fact-based-exploration2 *init*))
-  ;; (print
-  ;;  (reachable-predicates
-  ;;   (print
-  ;;    (make-trie *init*))))
-  ;; (print
-  ;;  (make-trie *ground-numeric-fluents*))
-  ;; (print
-  ;;  (make-trie *ground-object-fluents*))
-  ;; (print
-  ;;  (make-trie *actions*))
-  ;; (make-trie *axioms*)
-  )
+  (print (fact-based-exploration2 *init*)))
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
