@@ -1,6 +1,10 @@
 ;;; package
 (in-package :pddl2.impl)
 
+;; fact-based-exploration1
+;; 8.313 |      0.200 | 2,494,250,208 | 4,811,016 |   0.000002 | PDDL2.IMPL::BIND-ACTION1
+;; fact-based-exploration2
+;; 6.675 |      0.152 | 2,017,032,720 | 3,888,427 |   0.000002 | PDDL2.IMPL::BIND-ACTION1
 
 (defvar *ground-predicates*)
 (defvar *ground-actions*)
@@ -24,7 +28,7 @@
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a" *current-pathname*)
-  (print (fact-based-exploration *init*))
+  (print (fact-based-exploration2 *init*))
   ;; (print
   ;;  (reachable-predicates
   ;;   (print
@@ -52,11 +56,13 @@
           (format t "~&; ~ath ~a" c what)
           (setf log log-new))))))
 
-(defun fact-based-exploration (init)
+(defun fact-based-exploration2 (init)
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
   (let* ((queue (make-trie init))
          (reachable (make-trie nil))
-         (instantiated-actions (make-trie nil)))
+         (instantiated-actions (make-trie nil))
+         (alist (make-predicate-action-map)))
+    (print alist)
     (flet ((enqueue (thing)
              (push-trie thing queue)
              (log-logger :enqueue))
@@ -65,16 +71,44 @@
                (prog1 r1 (setf queue r2)
                       (log-logger :dequeue)))))
       (iter (while queue)
-            (push-trie (dequeue) reachable)
+            (for new = (dequeue))
+            (push-trie new reachable)
             (for gas = (mappend (lambda (a)
                                   (ground-actions a reachable))
-                                *actions*))
+                                (ematch new
+                                  ((list* head _)
+                                   (cdr (assoc head alist))))))
             (dolist (ga gas)
               (push-trie ga instantiated-actions)
               (dolist (ae (add-effects ga))
                 (unless (trie-member ae reachable)
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
+
+(defun make-predicate-action-map ()
+  (let (alist)
+    (iter (for a in *actions*)
+          (ematch a
+            ((list* '*goal* _) nil)
+            ((list* _
+                    :parameters _
+                    :precondition precond _)
+             (labels ((walk-condition (condition)
+                        (ematch condition
+                          ((list* 'and conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list* 'or conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list 'not _)
+                           ;; ignored
+                           nil)
+                          ((list* head _)
+                           (let ((pair (assoc head alist)))
+                             (if pair
+                                 (pushnew a (cdr pair))
+                                 (push (cons head (list a)) alist)))))))
+               (walk-condition precond)))))
+    alist))
 
 (defun ground-actions (action reachable)
   "action definition, trie of facts, trie of action skeletons"
@@ -194,3 +228,28 @@
            :parameters (remove parameter params)
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
+
+
+(defun fact-based-exploration1 (init)
+  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
+  (let* ((queue (make-trie init))
+         (reachable (make-trie nil))
+         (instantiated-actions (make-trie nil)))
+    (flet ((enqueue (thing)
+             (push-trie thing queue)
+             (log-logger :enqueue))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2)
+                      (log-logger :dequeue)))))
+      (iter (while queue)
+            (push-trie (dequeue) reachable)
+            (for gas = (mappend (lambda (a)
+                                  (ground-actions a reachable))
+                                *actions*))
+            (dolist (ga gas)
+              (push-trie ga instantiated-actions)
+              (dolist (ae (add-effects ga))
+                (unless (trie-member ae reachable)
+                  (enqueue ae)))))
+      (values reachable instantiated-actions))))
