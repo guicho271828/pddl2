@@ -57,5 +57,10 @@
            :push-trie
            :trie-equal
            :trie-subsetp
-           :lift-or2))
+           :lift-or2
+           :assign
+           :increase
+           :decrease
+           :scale-up
+           :scale-down))
 

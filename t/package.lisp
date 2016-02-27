@@ -12,6 +12,8 @@
         :trivia :alexandria :iterate))
 (in-package :pddl2.test)
 
+(defun rel (pathname)
+  (asdf:system-relative-pathname :pddl2 pathname))
 (defun set-equalp (set1 set2)
   (set-equal set1 set2 :test #'equalp))
 
@@ -24,8 +26,7 @@
   (for-all ((path (let ((domains (split-sequence
                                   #\Newline
                                   (uiop:run-program (format nil "find ~a -name '*domain*'"
-                                                            (merge-pathnames "t/classical/"
-                                                                             *default-pathname-defaults*))
+                                                            (rel "t/classical/"))
                                                     :output '(:string :stripped t)))))
                     (lambda ()
                       (random-elt domains)))))
@@ -39,8 +40,7 @@
   (for-all ((path (let ((domains (split-sequence
                                   #\Newline
                                   (uiop:run-program (format nil "find ~a -name '*.pddl' | grep -v domain"
-                                                            (merge-pathnames "t/classical/"
-                                                                             *default-pathname-defaults*))
+                                                            (rel "t/classical/"))
                                                     :output '(:string :stripped t)))))
                     (lambda ()
                       (random-elt domains)))))
@@ -219,15 +219,15 @@
 
 (test ground-problem2
   (finishes
-    (read-pddl (merge-pathnames "t/test/domain.pddl" *default-pathname-defaults*))
-    (read-pddl (merge-pathnames "t/test/probBLOCKS-4-0.pddl" *default-pathname-defaults*))
+    (read-pddl (rel "t/test/domain.pddl"))
+    (read-pddl (rel "t/test/probBLOCKS-4-0.pddl"))
     (apply #'ground-problem (symbol-problem 'BLOCKS-4-0))))
 
 
 (test ground-problem3
   (finishes
-    (read-pddl (merge-pathnames "t/test2/domain.pddl" *default-pathname-defaults*))
-    (read-pddl (merge-pathnames "t/test2/pfile1.pddl" *default-pathname-defaults*))
+    (read-pddl (rel "t/test2/domain.pddl"))
+    (read-pddl (rel "t/test2/pfile1.pddl"))
     (apply #'ground-problem (symbol-problem 'DLOG-2-2-2))))
 
 (test ground-problem1-forall
@@ -257,18 +257,59 @@
                                (true a) (true b) (true c)))
                   (apply #'ground-problem (symbol-problem 'testproblem-adl)))))
 
+(test benchmark
+  (format t "this benchmark could take 5 sec.")
+  (finishes
+    (read-pddl (rel "t/test3/domain.pddl")))
+  (finishes
+    (time
+     (apply #'ground-problem
+            (read-pddl (rel "t/test3/p03.pddl"))))))
+
+(test benchmark-heavy
+  ;; cd /home/guicho/repos/lisp/pddl2/t/classical/nomystery-opt11-strips
+  ;; time ~/repos/lisp/mwup/downward/translate/translate.py domain.pddl p17.pddl
+  ;; Runtime by FD's translate.py:
+  ;; real	0m2.686s
+  ;; user	0m2.372s
+  ;; sys	0m0.084s
+  (format t "this benchmark could take about 2 min.")
+  ;; initially
+  ;; Evaluation took:
+  ;;   123.177 seconds of real time
+  ;;   121.148000 seconds of total run time (120.976000 user, 0.172000 system)
+  ;;   [ Run times consist of 0.684 seconds GC time, and 120.464 seconds non-GC time. ]
+  ;;   98.35% CPU
+  ;;   369,551,213,802 processor cycles
+  ;;   9,879,499,280 bytes consed
+  ;; finally
+  ;; Evaluation took:
+  ;;   5.656 seconds of real time
+  ;;   5.344000 seconds of total run time (5.328000 user, 0.016000 system)
+  ;;   [ Run times consist of 0.072 seconds GC time, and 5.272 seconds non-GC time. ]
+  ;;   94.48% CPU
+  ;;   16,970,251,797 processor cycles
+  ;;   1,077,361,888 bytes consed
+  (finishes
+   (time
+    (apply #'ground-problem (symbol-problem 'transport-l10-t1-p9---int100n150-m25---int100c110---s1---e0)))))
+
+
+
+
 #+nil
 (test ground-problem4
-  (for-all ((problem
-             (with-hash-table-iterator (it *problem-table*)
-               (lambda ()
-                 (multiple-value-match (it)
-                   ((t key value)
-                    (list key value)))))))
-    (match problem
-      ((list key problem) 
-       (if problem
-           (finishes
-             (format t "~&instantiating ~A~&" key)
-             (time (apply #'ground-problem problem)))
-           (pass "finished"))))))
+  (time
+   (for-all ((problem
+              (with-hash-table-iterator (it *problem-table*)
+                (lambda ()
+                  (multiple-value-match (it)
+                    ((t key value)
+                     (list key value)))))))
+     (match problem
+       ((list key problem) 
+        (if problem
+            (finishes
+              (format t "~&instantiating ~A~&" key)
+              (time (apply #'ground-problem problem)))
+            (pass "finished")))))))
