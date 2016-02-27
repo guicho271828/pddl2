@@ -112,34 +112,52 @@
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
 
-(defun test-parameter (head params obj-trie)
-  (ematch params
-    (nil t)
-    ((list* p ps)
-     (if (variablep p)
-         (iter (for (obj . obj-subtrie) in obj-trie)
-               (always
-                (test-parameter head ps obj-subtrie)))
-         (when-let ((found (assoc p obj-trie)))
-           (test-parameter head ps (cdr found)))))))
-
 (defun check-action (action reachable)
-  "Returns T if all bound arguments matches some the reachable fact"
+  "Returns T if the action is applicable to the reachable sets of states, if lifted variables are ignored"
   (labels ((check-condition (condition)
              (ematch condition
                ((list* 'and conditions)
                 (every #'check-condition conditions))
                ((list* 'or conditions)
                 (some #'check-condition conditions))
+               ((list 'not (list* head params))
+                (~test-parameter head params (cdr (assoc head reachable))))
                ((list* head params)
-                (if (negativep head)
-                    (not (test-parameter head params (cdr (assoc (~ head) reachable))))
-                    (test-parameter head params (cdr (assoc head reachable))))))))
+                (test-parameter head params (cdr (assoc head reachable)))))))
     (ematch action
       ((list* _
               :parameters _
               :precondition precond _)
        (check-condition precond)))))
+
+(defun test-parameter (head params obj-trie)
+  "test if the given list of parameters is have a possible binding"
+  (ematch params
+    (nil t)
+    ((list* p ps)
+     (if (variablep p)
+         (iter (for (obj . subtrie) in obj-trie)
+               (thereis
+                (test-parameter head ps subtrie)))
+         (when-let ((found (assoc p obj-trie)))
+           (test-parameter head ps (cdr found)))))))
+
+(defun ~test-parameter (head params obj-trie)
+  "test if the given list of parameters have a possible binding --- for negative predicates"
+  (ematch params
+    (nil nil)
+    ((list* p ps)
+     (if (variablep p)
+         (or (iter (for (obj . type) in *objects*)
+                   (thereis
+                    (not (assoc obj obj-trie))))
+             (iter (for (obj . subtrie) in obj-trie)
+                   (thereis
+                    (~test-parameter head ps subtrie))))
+         (if-let ((found (assoc p obj-trie)))
+           (~test-parameter head ps (cdr found))
+           t)))))
+
 
 ;;; extract the effect
 
