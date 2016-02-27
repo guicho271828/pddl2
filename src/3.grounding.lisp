@@ -44,77 +44,6 @@
           (format t "~&; ~ath ~a" c what)
           (setf log log-new))))))
 
-(defun fact-based-exploration2 (init)
-  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
-  (let* ((queue (make-trie init))
-         (reachable (make-trie nil))
-         (instantiated-actions (make-trie nil))
-         (alist (make-predicate-action-map)))
-    (print alist)
-    (flet ((enqueue (thing)
-             (push-trie thing queue)
-             (log-logger :enqueue))
-           (dequeue ()
-             (multiple-value-bind (r1 r2) (pop-trie queue)
-               (prog1 r1 (setf queue r2)
-                      (log-logger :dequeue)))))
-      (iter (while queue)
-            (for new = (dequeue))
-            (push-trie new reachable)
-            (for gas = (mappend (lambda (a)
-                                  (ground-actions a reachable))
-                                (ematch new
-                                  ((list* head _)
-                                   (cdr (assoc head alist))))))
-            (dolist (ga gas)
-              (push-trie ga instantiated-actions)
-              (dolist (ae (add-effects ga))
-                (unless (trie-member ae reachable)
-                  (enqueue ae)))))
-      (values reachable instantiated-actions))))
-
-(defun make-predicate-action-map ()
-  (let (alist)
-    (iter (for a in *actions*)
-          (ematch a
-            ((list* '*goal* _) nil)
-            ((list* _
-                    :parameters _
-                    :precondition precond _)
-             (labels ((walk-condition (condition)
-                        (ematch condition
-                          ((list* 'and conditions)
-                           (map nil #'walk-condition conditions))
-                          ((list* 'or conditions)
-                           (map nil #'walk-condition conditions))
-                          ((list 'not _)
-                           ;; ignored
-                           nil)
-                          ((list* head _)
-                           (let ((pair (assoc head alist)))
-                             (if pair
-                                 (pushnew a (cdr pair))
-                                 (push (cons head (list a)) alist)))))))
-               (walk-condition precond)))))
-    alist))
-
-(defun ground-actions (action reachable)
-  "action definition, trie of facts, trie of action skeletons"
-  (%applicable-bindings action reachable nil))
-
-(defun %applicable-bindings (action reachable bindings)
-  ;; list, list, trie, trie, trie
-  (match action
-    ((list* name :parameters nil _)
-     (list (cons name (reverse bindings))))
-    (_
-     (iter (for (o . type) in *objects*)
-           ;; ignore type
-           (let ((partial (bind-action1 action o)))
-             (when (check-action partial reachable)
-               (appending (%applicable-bindings partial reachable (cons o bindings)))))))))
-
-
 (defun bind-action1 (action object)
   "bind the first parameter"
   (ematch action
@@ -241,3 +170,73 @@
                 (unless (trie-member ae reachable)
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
+
+(defun fact-based-exploration2 (init)
+  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
+  (let* ((queue (make-trie init))
+         (reachable (make-trie nil))
+         (instantiated-actions (make-trie nil))
+         (alist (make-predicate-action-map)))
+    (print alist)
+    (flet ((enqueue (thing)
+             (push-trie thing queue)
+             (log-logger :enqueue))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2)
+                      (log-logger :dequeue)))))
+      (iter (while queue)
+            (for new = (dequeue))
+            (push-trie new reachable)
+            (for gas = (mappend (lambda (a)
+                                  (ground-actions a reachable))
+                                (ematch new
+                                  ((list* head _)
+                                   (cdr (assoc head alist))))))
+            (dolist (ga gas)
+              (push-trie ga instantiated-actions)
+              (dolist (ae (add-effects ga))
+                (unless (trie-member ae reachable)
+                  (enqueue ae)))))
+      (values reachable instantiated-actions))))
+
+(defun make-predicate-action-map ()
+  (let (alist)
+    (iter (for a in *actions*)
+          (ematch a
+            ((list* '*goal* _) nil)
+            ((list* _
+                    :parameters _
+                    :precondition precond _)
+             (labels ((walk-condition (condition)
+                        (ematch condition
+                          ((list* 'and conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list* 'or conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list 'not _)
+                           ;; ignored
+                           nil)
+                          ((list* head _)
+                           (let ((pair (assoc head alist)))
+                             (if pair
+                                 (pushnew a (cdr pair))
+                                 (push (cons head (list a)) alist)))))))
+               (walk-condition precond)))))
+    alist))
+
+(defun ground-actions (action reachable)
+  "action definition, trie of facts, trie of action skeletons"
+  (%applicable-bindings action reachable nil))
+
+(defun %applicable-bindings (action reachable bindings)
+  ;; list, list, trie, trie, trie
+  (match action
+    ((list* name :parameters nil _)
+     (list (cons name (reverse bindings))))
+    (_
+     (iter (for (o . type) in *objects*)
+           ;; ignore type
+           (let ((partial (bind-action1 action o)))
+             (when (check-action partial reachable)
+               (appending (%applicable-bindings partial reachable (cons o bindings)))))))))
