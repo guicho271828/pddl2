@@ -56,6 +56,18 @@
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
 
+(defun nbind-action1 (action object)
+  "bind the first parameter: destructive"
+  (ematch action
+    ((list name
+           :parameters (list* parameter rest)
+           :precondition (place precond)
+           :effect (place eff))
+     (setf precond (nsubst object parameter precond)
+           eff     (nsubst object parameter eff))
+     action)))
+
+
 (defun check-action (action reachable)
   "Returns T if the action is applicable to the reachable sets of states, if lifted variables are ignored"
   (labels ((check-condition (condition)
