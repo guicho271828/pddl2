@@ -214,7 +214,12 @@ fact-based-exploration3
 (defun grounded-action-definition (gaction)
   (ematch gaction
     ((list* name objs)
-     (reduce #'nbind-action1 objs :initial-value (copy-tree (assoc name *actions*))))))
+     (ematch (assoc name *actions*)
+       ((and action
+             (list* (eq name)
+                    :parameters params _))
+        (assert (= (length params) (length objs)))
+        (reduce #'nbind-action1 objs :initial-value (copy-tree action)))))))
 
 (defun add-effects (action)
   (ematch action
