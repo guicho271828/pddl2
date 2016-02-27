@@ -170,12 +170,13 @@ fact-based-exploration3
 (defun nbind-action1 (action object)
   "bind the first parameter: destructive"
   (ematch action
-    ((list name
-           :parameters (list* parameter rest)
+    ((list _
+           :parameters (place params)
            :precondition (place precond)
            :effect (place eff))
-     (setf precond (nsubst object parameter precond)
-           eff     (nsubst object parameter eff))
+     (setf precond (nsubst object (car params) precond)
+           eff     (nsubst object (car params) eff)
+           params  (cdr params))
      action)))
 
 
