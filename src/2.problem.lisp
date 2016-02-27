@@ -113,22 +113,7 @@
 ;;; process actions
 
 (defun really-process-actions (proto-actions)
-  ;; when a negative predicate was found in the precondition, it is added
-  ;; to the predicate list, then the entire processing is rerun to ensure
-  ;; that all actions consider the effects on the negative predicates.
-  (prog (rerun-flag)
-    (return
-      (restart-bind ((rerun-processing
-                      (lambda ()
-                        (format t "~%detected negative predicate, restart flag set")
-                        (setf rerun-flag t))))
-        (let ((result (mappend #'flatten-action proto-actions)))
-          (format t "~%Current actions: ~s" result)
-          (if rerun-flag
-              (progn
-                (format t "~%detected negative predicate, restarting")
-                (really-process-actions result))
-              result))))))
+  (mappend #'flatten-action proto-actions))
 
 (defun flatten-action (proto-action)
   "Compile OR, NOT, FORALL, EXISTS, IMPLY, WHEN"
@@ -207,7 +192,7 @@
     ((list 'not (list 'imply lhs rhs))
      (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
     ((list 'not (list* name args))
-     (ensure-negative-predicate name args))))
+     (list* (~ name) args))))
 
 (defun ~ (name)
   (if (negativep name)
@@ -216,15 +201,6 @@
 
 (defun negativep (name)
   (char= #\~ (aref (symbol-name name) 0)))
-
-(defun ensure-negative-predicate (name args)
-  (let ((~pred (~ name)))
-    (or (assoc ~pred *predicates*)
-        (progn
-          (pushnew (list* ~pred (cdr (assoc name *predicates*))) *predicates* :test #'equal)
-          ;; since add/delete effects for negative predicates should be added
-          (invoke-restart 'rerun-processing)
-          (list* ~pred args)))))
 
 (defun parse-effect (body)
   "Extract WHEN, compile FORALL, and flatten AND tree."
@@ -256,13 +232,9 @@
                  ((list* (or 'assign 'increase 'decrease 'scale-up 'scale-down) _)
                   (error "syntax error in ~a" body))
                  ((list 'not (list* name args))
-                  (pushnew body del :test #'equalp)
-                  (when (assoc (~ name) *predicates*)
-                    (pushnew `(,(~ name) ,@args) add :test #'equalp)))
+                  (pushnew body del :test #'equalp))
                  ((list* name args)
-                  (pushnew body add :test #'equalp)
-                  (when (assoc (~ name) *predicates*)
-                    (pushnew `(not (,(~ name) ,@args)) del :test #'equalp))))))
+                  (pushnew body add :test #'equalp)))))
       (rec body)
       (values `(and ,@del ,@add ,@fluents)
               conditional-effect-pairs))))
