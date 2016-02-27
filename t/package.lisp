@@ -12,7 +12,8 @@
         :trivia :alexandria :iterate))
 (in-package :pddl2.test)
 
-
+(defun set-equalp (set1 set2)
+  (set-equal set1 set2 :test #'equalp))
 
 (def-suite :pddl2)
 (in-suite :pddl2)
@@ -150,7 +151,7 @@
           (make-trie '((a x y)
                        (c a x y)
                        (a x z)))))
-        (is (set-equal
+        (is (set-equalp
              '((a x y)
                (c a x y)
                (a x z))
@@ -160,12 +161,11 @@
                          (make-trie '((a x y)
                                       (c a x y)
                                       (a x z))))
-               acc)
-             :test #'equalp))
+               acc)))
         (let ((trie (make-trie '((a x y)
                                  (c a x y)
                                  (a x z)))))
-          (is (set-equal
+          (is (set-equalp
                '((a x y)
                  (c a x y)
                  (a x z))
@@ -177,8 +177,7 @@
                                      (setf trie r2)))
                             (multiple-value-bind (r1 r2) (pop-trie trie)
                               (prog1 r1
-                                     (setf trie r2)))))
-               :test #'equalp))
+                                     (setf trie r2)))))))
           (is (trie-equal trie (make-trie nil))))
         (let ((trie1 (make-trie '((a x y)
                                   (c a x y)
