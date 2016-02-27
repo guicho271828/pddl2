@@ -29,6 +29,13 @@ nbind-action1 :
   21,425,355,510 processor cycles
   1,971,950,016 bytes consed
 
+fact-based-exploration3
+
+  0.265 seconds of real time
+  0.272000 seconds of total run time (0.272000 user, 0.000000 system)
+  792,419,679 processor cycles
+  70,281,488 bytes consed
+
 |#
 
 
@@ -54,7 +61,7 @@ nbind-action1 :
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a" *current-pathname*)
-  (print (fact-based-exploration1 *init*)))
+  (print (fact-based-exploration3 *init*)))
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
@@ -84,38 +91,40 @@ nbind-action1 :
       (iter (while queue)
             (for new = (dequeue))
             (push-trie new reachable)
-            (for gas = (ground-actions2 new reachable instantiated-actions))
+            (for gas = (ground-actions2 new (p-a-mapping *actions*) reachable))
             (dolist (ga gas)
               (push-trie ga instantiated-actions)
-              (dolist (ae (add-effects ga))
+              (dolist (ae (add-effects (grounded-action-definition ga)))
                 (unless (trie-member ae reachable)
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
 
-(defun p-a-e-mapping ()
-  (let (alist)
-    (iter (for a in *actions*)
+(defcached p-a-mapping (actions)
+  (let (plist)
+    (iter (for a in actions)
           (ematch a
-            ((list* _ :parameters _ :precondition precond _)
+            ((list* '*goal* _)) ; ignore
+            ((list* (not '*goal*) :parameters _ :precondition precond _)
              (labels ((walk-condition (condition)
                         (ematch condition
                           ((list* (op _) conditions)
                            (map nil #'walk-condition conditions))
-                          ((list 'not _)
-                           ;; ignored
-                           nil)
+                          ((list 'not _)) ; ignored
                           ((list* head params)
-                           (let ((pair (assoc head alist)))
-                             (if pair
-                                 (pushnew a (cdr pair))
-                                 (push (cons head (list a)) alist)))))))
+                           (push (cons a params) (getf plist head))))))
                (walk-condition precond)))))
-    alist))
+    plist))
 
-(defun ground-actions2 (new-fact reachable instantiated-actions)
+(defun ground-actions2 (new-fact p-a-mapping reachable)
   "Compute the set of actions enabled by new-fact"
-  
-  )
+  (ematch new-fact
+    ((list* head args)
+     (iter (for (action . params) in (getf p-a-mapping head))
+           (for partial-action = (reduce #'nbind-action
+                                         (mapcar #'cons params args)
+                                         :initial-value (copy-tree action)))
+           (appending
+            (ground-actions partial-action reachable))))))
 
 
 (defun bind-action (action binding)
@@ -135,7 +144,7 @@ nbind-action1 :
 (defun nbind-action (action binding)
   "binding : (param . obj)"
   (ematch* (action binding)
-    (((list name
+    (((list _
            :parameters (place params)
            :precondition (place precond)
            :effect (place eff))
