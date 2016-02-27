@@ -242,31 +242,20 @@
                                   (connected ?x ?y))
                :effect (and (not (at ?x))
                             (forall (?z) (not (true ?z)))
-                            (at ?y))))
+                            (at ?y)))
+      (:action flag
+               :parameters ()
+               :precondition (exists (?z) (true ?z))
+               :effect (forall (?z) (true ?z))))
     (define (problem testproblem-adl)
       (:domain testdomain-adl)
       (:objects a b c)
       (:init (at a) (connected a b) (connected b c) (true c))
-      (:goal (at c)))
-    (apply #'ground-problem (symbol-problem 'testproblem-adl))))
-
-(test ground-problem1-neg
-  (finishes
-    (define (domain ~testdomain)
-      (:predicates (at ?x) (connected ?x ?y))
-      (:action move
-               :parameters (?x ?y)
-               :precondition (and (at ?x)
-                                  (not (at ?y))
-                                  (connected ?x ?y))
-               :effect (and (not (at ?x))
-                            (at ?y))))
-    (define (problem ~testproblem)
-      (:domain ~testdomain)
-      (:objects a b c)
-      (:init (at a) (connected a b) (connected b c))
-      (:goal (at c)))
-    (apply #'ground-problem (symbol-problem '~testproblem))))
+      (:goal (at c))))
+  (is (trie-equal (make-trie '((at a) (at b) (at c)
+                               (connected a b) (connected b c)
+                               (true a) (true b) (true c)))
+                  (apply #'ground-problem (symbol-problem 'testproblem-adl)))))
 
 #+nil
 (test ground-problem4
