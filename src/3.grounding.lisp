@@ -120,12 +120,10 @@
                 (every #'check-condition conditions))
                ((list* 'or conditions)
                 (some #'check-condition conditions))
+               ((list 'not (list* head params))
+                (~test-parameter head params (cdr (assoc head reachable))))
                ((list* head params)
-                (if (negativep head)
-                    ;; (~test-parameter head params (cdr (assoc head reachable)))
-                    ;; #+nil 
-                    (~test-parameter (~ head) params (cdr (assoc (~ head) reachable)))
-                    (test-parameter head params (cdr (assoc head reachable))))))))
+                (test-parameter head params (cdr (assoc head reachable)))))))
     (ematch action
       ((list* _
               :parameters _

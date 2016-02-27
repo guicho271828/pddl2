@@ -191,16 +191,8 @@
      (compile-adl-condition `(forall ,params (not ,quantified-body))))
     ((list 'not (list 'imply lhs rhs))
      (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
-    ((list 'not (list* name args))
-     (list* (~ name) args))))
-
-(defun ~ (name)
-  (if (negativep name)
-      (intern (subseq (symbol-name name) 1) (symbol-package name))
-      (symbolicate '~ name)))
-
-(defun negativep (name)
-  (char= #\~ (aref (symbol-name name) 0)))
+    ((list 'not _)
+     condition)))
 
 (defun parse-effect (body)
   "Extract WHEN, compile FORALL, and flatten AND tree."
