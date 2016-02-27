@@ -67,6 +67,27 @@
     (_ (values condition t))))
 
 (defun lift-or (condition)
+  "convert a decision tree to a disjunction of conjunctions. Do not use it, possibly exponential blowup."
   (flatten-condition
    (disjunction-conjunction
     (make-condition-binary condition))))
+
+(defun lift-or2 (condition)
+  "make an and-or tree into a conjunction of disjunctions (different from a disjunction of conjunctions).
+It bubbles up the disjunctions as much as possible,
+but not as aggressive as tring to make it a toplevel (which is exponential).
+In a conjunction, any disjunctions comes earlier than any flattened single predicate."
+  (let (clauses ors)
+    (labels ((rec (exp)
+               (ematch exp
+                 ((list* 'and rest)
+                  (dolist (x rest)
+                    (rec x)))
+                 ((list* 'or rest)
+                  (push `(or ,@(mapcar #'lift-or2 rest)) ors))
+                 (_
+                  (push exp clauses)))))
+      (rec condition)
+      (if (< 1 (+ (length ors) (length clauses)))
+          `(and ,@ors ,@clauses)
+          (or (first ors) (first clauses) '(and))))))

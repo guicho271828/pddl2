@@ -55,5 +55,6 @@
            :pop-trie
            :push-trie
            :trie-equal
-           :trie-subsetp))
+           :trie-subsetp
+           :lift-or2))
 

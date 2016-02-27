@@ -149,10 +149,10 @@
                    ((cons precond effects)
                     (list name
                           :parameters param-names
-                          :precondition (lift-or `(and ,precond))
+                          :precondition (lift-or2 `(and ,precond))
                                         ; ensuring being wrapped by AND
                           ;; use the side effect of lift-or: AND is unified
-                          :effect (lift-or `(and ,effects)))))
+                          :effect (lift-or2 `(and ,effects)))))
                  (%flatten-conditional-effects simple-precond
                                                static-effects
                                                conditional-effect-pairs)))))))
