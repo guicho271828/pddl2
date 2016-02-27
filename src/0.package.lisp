@@ -48,6 +48,7 @@
            :ground-problem
            :make-trie
            :merge-trie
+           :nmerge-trie
            :trie-member
            :lift-or
            :variablep
