@@ -90,4 +90,4 @@ In a conjunction, any disjunctions comes earlier than any flattened single predi
       (rec condition)
       (if (< 1 (+ (length ors) (length clauses)))
           `(and ,@ors ,@clauses)
-          (or (first ors) (first clauses))))))
+          (or (first ors) (first clauses) '(and))))))

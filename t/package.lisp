@@ -190,6 +190,9 @@
           (is (trie-equal trie1 trie2))))
     (untrace make-trie trie-equal trie-member push-trie)))
 
+(test lift-or2
+  (is (equal '(and) (lift-or2 `(and)))))
+
 
 (test ground-problem1
   (finishes
