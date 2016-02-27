@@ -100,30 +100,29 @@
 
 ;;; extract the effect
 
-(defun add-effects (gaction)
+(defun grounded-action-definition (gaction)
   (ematch gaction
     ((list* name objs)
-     (ematch (reduce #'bind-action1 objs :initial-value (assoc name *actions*))
-       ((list _
-              :parameters nil
-              :precondition _
-              :effect effects)
-        (let (acc)
-          (labels ((walk-effect (condition)
-                     (ematch condition
-                       ((list* 'and conditions)
-                        (every #'walk-effect conditions))
-                       ((or (list 'not (list* (or 'and 'or 'forall 'exists 'imply) _))
-                            (list* (or 'or 'exists 'imply) _))
-                        (error "invalid effect: ~a" condition))
-                       ((list* (and op (or 'forall 'when)) _)
-                        (error "~A should have been compiled away?: ~a" op condition))
-                       ((list* (or 'not 'assign 'increase 'decrease 'scale-up 'scale-down) _)
-                        ;; ignore negative effect and costs
-                        nil)
-                       (_ (push condition acc)))))
-            (walk-effect effects)
-            acc)))))))
+     (reduce #'nbind-action1 objs :initial-value (copy-tree (assoc name *actions*))))))
+
+(defun add-effects (action)
+  (ematch action
+    ((list _ :parameters nil :precondition _ :effect effects)
+     (let (acc)
+       (labels ((walk-effect (condition)
+                  (ematch condition
+                    ((list* 'and conditions)
+                     (every #'walk-effect conditions))
+                    ((or (list 'not (list* (or 'and 'or 'forall 'exists 'imply) _))
+                         (list* (or 'or 'exists 'imply) _))
+                     (error "invalid effect: ~a" condition))
+                    ((list* (and op (or 'forall 'when)) _)
+                     (error "~A should have been compiled away?: ~a" op condition))
+                    ;; ignore negative effect and costs
+                    ((list* (or 'not 'assign 'increase 'decrease 'scale-up 'scale-down) _))
+                    (_ (push condition acc)))))
+         (walk-effect effects)
+         acc)))))
 
 ;;; old
 
@@ -178,7 +177,7 @@
                                 *actions*))
             (dolist (ga gas)
               (push-trie ga instantiated-actions)
-              (dolist (ae (add-effects ga))
+              (dolist (ae (add-effects (grounded-action-definition ga)))
                 (unless (trie-member ae reachable)
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
@@ -207,7 +206,7 @@
                                    (cdr (assoc head alist))))))
             (dolist (ga gas)
               (push-trie ga instantiated-actions)
-              (dolist (ae (add-effects ga))
+              (dolist (ae (add-effects (grounded-action-definition ga)))
                 (unless (trie-member ae reachable)
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
