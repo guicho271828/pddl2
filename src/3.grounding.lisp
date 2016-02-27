@@ -50,14 +50,20 @@
          (reachable (make-trie nil))
          (instantiated-actions (make-trie nil)))
     (flet ((enqueue (thing)
-             #+nil
-             (format t "~&Enqueuing ~a . remaining: ~a ~&" thing queue)
-             (push-trie thing queue))
+             ;; #+nil
+             (format t "~&; E ~a" thing)
+             (fresh-line)
+             (push-trie thing queue)
+             (format t "~&; Q ~a" queue)
+             (format t "~&; R ~a" reachable))
            (dequeue ()
              (multiple-value-bind (r1 r2) (pop-trie queue)
                (prog1 r1 (setf queue r2)
-                      #+nil
-                      (format t "~&Deque ~a . remaining: ~a ~&" r1 queue)))))
+                      ;; #+nil
+                      (format t "~&; D ~a" r1)
+                      (format t "~&; Q ~a" queue)
+                      (format t "~&; R ~a" reachable)
+                      (fresh-line)))))
       (iter (while queue)
             (push-trie (dequeue) reachable)
             (for gas = (mappend (lambda (a)
