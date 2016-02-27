@@ -19,13 +19,18 @@
 ;; (defun make-trie (list)
 ;;   `(+root+ ,@(%make-trie list)))
 
-(defun merge-trie (t1 t2)
+(defun merge-trie (&optional t1 t2)
+  (if (and t1 t2)
+      (%merge-trie t1 t2)
+      (or t1 t2)))
+
+(defun %merge-trie (t1 t2)
   (let ((acc (copy-tree t1)))
     (iter (for subtrie2 in t2)
           (for (head . rest) = subtrie2)
           (if-let ((subtrie1 (assoc head acc)))
             (setf (cdr subtrie1)
-                  (merge-trie (cdr subtrie1) rest))
+                  (%merge-trie (cdr subtrie1) rest))
             (push subtrie2 acc)))
     acc))
 
