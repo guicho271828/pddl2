@@ -1,10 +1,36 @@
 ;;; package
 (in-package :pddl2.impl)
 
-;; fact-based-exploration1
-;; 8.313 |      0.200 | 2,494,250,208 | 4,811,016 |   0.000002 | PDDL2.IMPL::BIND-ACTION1
-;; fact-based-exploration2
-;; 6.675 |      0.152 | 2,017,032,720 | 3,888,427 |   0.000002 | PDDL2.IMPL::BIND-ACTION1
+#|
+
+fact-based-exploration1
+bind-action1 :
+  9.279 seconds of real time
+  9.308000 seconds of total run time (9.256000 user, 0.052000 system)
+  27,837,749,823 processor cycles
+  2,510,101,264 bytes consed
+
+nbind-action1 :
+  8.333 seconds of real time
+  8.364000 seconds of total run time (8.364000 user, 0.000000 system)
+  24,999,240,983 processor cycles
+  2,265,628,416 bytes consed
+
+fact-based-exploration2
+bind-action1 :
+  7.377 seconds of real time
+  7.400000 seconds of total run time (7.368000 user, 0.032000 system)
+  22,131,262,925 processor cycles
+  2,030,614,080 bytes consed
+
+nbind-action1 :
+  7.142 seconds of real time
+  7.164000 seconds of total run time (7.160000 user, 0.004000 system)
+  21,425,355,510 processor cycles
+  1,971,950,016 bytes consed
+
+|#
+
 
 (defvar *ground-predicates*)
 (defvar *ground-actions*)
@@ -28,7 +54,7 @@
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a" *current-pathname*)
-  (print (fact-based-exploration2 *init*)))
+  (print (fact-based-exploration1 *init*)))
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
@@ -43,6 +69,82 @@
         (when (< log log-new)
           (format t "~&; ~ath ~a" c what)
           (setf log log-new))))))
+
+(defun fact-based-exploration3 (init)
+  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
+  (let* ((queue (make-trie init))
+         (reachable (make-trie nil))
+         (instantiated-actions (make-trie nil)))
+    (flet ((enqueue (thing)
+             (push-trie thing queue)
+             (log-logger :enqueue))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2) (log-logger :dequeue)))))
+      (iter (while queue)
+            (for new = (dequeue))
+            (push-trie new reachable)
+            (for gas = (ground-actions2 new reachable instantiated-actions))
+            (dolist (ga gas)
+              (push-trie ga instantiated-actions)
+              (dolist (ae (add-effects ga))
+                (unless (trie-member ae reachable)
+                  (enqueue ae)))))
+      (values reachable instantiated-actions))))
+
+(defun p-a-e-mapping ()
+  (let (alist)
+    (iter (for a in *actions*)
+          (ematch a
+            ((list* _ :parameters _ :precondition precond _)
+             (labels ((walk-condition (condition)
+                        (ematch condition
+                          ((list* (op _) conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list 'not _)
+                           ;; ignored
+                           nil)
+                          ((list* head params)
+                           (let ((pair (assoc head alist)))
+                             (if pair
+                                 (pushnew a (cdr pair))
+                                 (push (cons head (list a)) alist)))))))
+               (walk-condition precond)))))
+    alist))
+
+(defun ground-actions2 (new-fact reachable instantiated-actions)
+  "Compute the set of actions enabled by new-fact"
+  
+  )
+
+
+(defun bind-action (action binding)
+  "binding : (param . obj)"
+  (ematch* (action binding)
+    (((list name
+           :parameters params
+           :precondition precond
+           :effect eff)
+      (cons parameter object))
+     (assert (member parameter params))
+     (list name
+           :parameters (remove parameter params)
+           :precondition (subst object parameter precond)
+           :effect (subst object parameter eff)))))
+
+(defun nbind-action (action binding)
+  "binding : (param . obj)"
+  (ematch* (action binding)
+    (((list name
+           :parameters (place params)
+           :precondition (place precond)
+           :effect (place eff))
+      (cons parameter object))
+     (assert (member parameter params))
+     (setf params  (delete parameter params)
+           precond (nsubst object parameter precond)
+           eff     (nsubst object parameter eff))
+     action)))
 
 (defun bind-action1 (action object)
   "bind the first parameter"
