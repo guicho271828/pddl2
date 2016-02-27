@@ -257,18 +257,19 @@
                                (true a) (true b) (true c)))
                   (apply #'ground-problem (symbol-problem 'testproblem-adl)))))
 
-#+nil
+
 (test ground-problem4
-  (for-all ((problem
-             (with-hash-table-iterator (it *problem-table*)
-               (lambda ()
-                 (multiple-value-match (it)
-                   ((t key value)
-                    (list key value)))))))
-    (match problem
-      ((list key problem) 
-       (if problem
-           (finishes
-             (format t "~&instantiating ~A~&" key)
-             (time (apply #'ground-problem problem)))
-           (pass "finished"))))))
+  (time
+   (for-all ((problem
+              (with-hash-table-iterator (it *problem-table*)
+                (lambda ()
+                  (multiple-value-match (it)
+                    ((t key value)
+                     (list key value)))))))
+     (match problem
+       ((list key problem) 
+        (if problem
+            (finishes
+              (format t "~&instantiating ~A~&" key)
+              (time (apply #'ground-problem problem)))
+            (pass "finished")))))))
