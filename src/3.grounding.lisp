@@ -90,20 +90,7 @@
 
 (defun ground-actions (action reachable)
   "action definition, trie of facts, trie of action skeletons"
-  (ematch action
-    ((list name
-           :parameters params
-           :precondition (list* 'or rest)
-           :effect eff)
-     (mappend (lambda (precond)
-                (ground-actions (list name
-                                      :parameters params
-                                      :precondition precond
-                                      :effect eff)
-                                reachable))
-              rest))
-    (_
-     (%applicable-bindings action reachable nil))))
+  (%applicable-bindings action reachable nil))
 
 (defun %applicable-bindings (action reachable bindings)
   ;; list, list, trie, trie, trie
