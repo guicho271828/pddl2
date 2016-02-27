@@ -107,7 +107,7 @@
 
 (defun add-effects (action)
   (ematch action
-    ((list _ :parameters nil :precondition _ :effect effects)
+    ((list _ :parameters _ :precondition _ :effect effects)
      (let (acc)
        (labels ((walk-effect (condition)
                   (ematch condition
