@@ -129,14 +129,21 @@
 
 (defun check-action (action reachable)
   "Returns T if all bound arguments matches some the reachable fact"
-  (ematch action
-    ((list* _
-            :parameters _
-            :precondition (list* 'and precond) _)
-     (iter (for (head . params) in precond)
-           (if (negativep head)
-               (always (not (test-parameter head params (cdr (assoc (~ head) reachable)))))
-               (always (test-parameter head params (cdr (assoc head reachable)))))))))
+  (labels ((check-condition (condition)
+             (ematch condition
+               ((list* 'and conditions)
+                (every #'check-condition conditions))
+               ((list* 'or conditions)
+                (some #'check-condition conditions))
+               ((list* head params)
+                (if (negativep head)
+                    (not (test-parameter head params (cdr (assoc (~ head) reachable))))
+                    (test-parameter head params (cdr (assoc head reachable))))))))
+    (ematch action
+      ((list* _
+              :parameters _
+              :precondition precond _)
+       (check-condition precond)))))
 
 ;;; extract the effect
 
