@@ -147,8 +147,8 @@
                 (every #'check-condition conditions))
                ((list* 'or conditions)
                 (some #'check-condition conditions))
-               ((list 'not (list* head params))
-                (~test-parameter head params (cdr (assoc head reachable))))
+               ((list 'not _)
+                t)
                ((list* head params)
                 (test-parameter head params (cdr (assoc head reachable)))))))
     (ematch action
@@ -168,23 +168,6 @@
                 (test-parameter head ps subtrie)))
          (when-let ((found (assoc p obj-trie)))
            (test-parameter head ps (cdr found)))))))
-
-(defun ~test-parameter (head params obj-trie)
-  "test if the given list of parameters have a possible binding --- for negative predicates"
-  (ematch params
-    (nil nil)
-    ((list* p ps)
-     (if (variablep p)
-         (or (iter (for (obj . type) in *objects*)
-                   (thereis
-                    (not (assoc obj obj-trie))))
-             (iter (for (obj . subtrie) in obj-trie)
-                   (thereis
-                    (~test-parameter head ps subtrie))))
-         (if-let ((found (assoc p obj-trie)))
-           (~test-parameter head ps (cdr found))
-           t)))))
-
 
 ;;; extract the effect
 
@@ -228,6 +211,23 @@
            :parameters (remove parameter params)
            :precondition (subst object parameter precond)
            :effect (subst object parameter eff)))))
+
+(defun ~test-parameter (head params obj-trie)
+  ;; no more used, since checking the negative predicate is not necessary
+  "test if the given list of parameters have a possible binding --- for negative predicates"
+  (ematch params
+    (nil nil)
+    ((list* p ps)
+     (if (variablep p)
+         (or (iter (for (obj . type) in *objects*)
+                   (thereis
+                    (not (assoc obj obj-trie))))
+             (iter (for (obj . subtrie) in obj-trie)
+                   (thereis
+                    (~test-parameter head ps subtrie))))
+         (if-let ((found (assoc p obj-trie)))
+           (~test-parameter head ps (cdr found))
+           t)))))
 
 
 (defun fact-based-exploration1 (init)
