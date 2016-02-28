@@ -81,7 +81,8 @@ fact-based-exploration3
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
   (let* ((queue (make-trie init))
          (reachable (make-trie nil))
-         (instantiated-actions (make-trie nil)))
+         (instantiated-actions (make-trie nil))
+         (p-a-mapping (p-a-mapping *actions*)))
     (flet ((enqueue (thing)
              (push-trie thing queue)
              (log-logger :enqueue))
@@ -91,7 +92,7 @@ fact-based-exploration3
       (iter (while queue)
             (for new = (dequeue))
             (push-trie new reachable)
-            (for gas = (ground-actions2 new (p-a-mapping *actions*) reachable))
+            (for gas = (ground-actions2 new p-a-mapping reachable))
             (dolist (ga gas)
               (push-trie ga instantiated-actions)
               (dolist (ae (add-effects (grounded-action-definition ga)))
@@ -99,7 +100,7 @@ fact-based-exploration3
                   (enqueue ae)))))
       (values reachable instantiated-actions))))
 
-(defcached p-a-mapping (actions)
+(defun p-a-mapping (actions)
   (let (plist)
     (iter (for a in actions)
           (ematch a
