@@ -124,15 +124,17 @@ fact-based-exploration3
             (for (action . params) in (getf p-a-mapping head))
             ;; (print args)
             ;; (print params)
-            (for bindings =
-                 (iter (for p in params)
-                       (for o in args)
-                       (if (variablep p)
-                           (collect (cons p o))
-                           ;; params may contain constants.
-                           (when (not (eq p o))
-                             ;; invalid assignment.
-                             (in outer (next-iteration))))))
+            (for bindings = nil)
+            (iter (for p in params)
+                  (for o in args)
+                  (if (variablep p) ; params may contain constants.
+                      (if-let ((binding (assoc p bindings)))
+                        ;; a parameter can appear twice e.g.: (pred ?X ?Y ?X)
+                        (unless (eq o (cdr binding)) ; in that case, it should be eq to the established binding.
+                          (in outer (next-iteration)))
+                        (push (cons p o) bindings))
+                      (unless (eq p o) ; when it is a constant, it should be eq to the argument.
+                        (in outer (next-iteration)))))
             ;; (print bindings)
             (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
             ;; some arguments are partially grounded.
