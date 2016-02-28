@@ -168,9 +168,11 @@
     ((list* 'or rest)
      `(or ,@(mapcar #'compile-adl-condition rest)))
     ((list 'forall params quantified-body)
-     `(and ,@(enumerate-quantifier params quantified-body)))
+     (compile-adl-condition
+     `(and ,@(enumerate-quantifier params quantified-body))))
     ((list 'exists params quantified-body)
-     `(or ,@(enumerate-quantifier params quantified-body)))
+     (compile-adl-condition
+     `(or ,@(enumerate-quantifier params quantified-body))))
     ((list 'imply lhs rhs)
      `(or (not ,lhs) (and ,lhs ,rhs)))
     ((list 'not _)
