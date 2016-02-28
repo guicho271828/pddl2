@@ -267,13 +267,16 @@
             (read-pddl (rel "t/test3/p03.pddl"))))))
 
 (test benchmark-heavy
+  (finishes
+    (read-pddl (rel "t/classical/nomystery-opt11-strips/domain.pddl"))
+    (read-pddl (rel "t/classical/nomystery-opt11-strips/p17.pddl")))
   ;; cd /home/guicho/repos/lisp/pddl2/t/classical/nomystery-opt11-strips
   ;; time ~/repos/lisp/mwup/downward/translate/translate.py domain.pddl p17.pddl
   ;; Runtime by FD's translate.py:
   ;; real	0m2.686s
   ;; user	0m2.372s
   ;; sys	0m0.084s
-  (format t "this benchmark could take about 2 min.")
+  (format t "this benchmark could take about 6 sec.")
   ;; initially
   ;; Evaluation took:
   ;;   123.177 seconds of real time
@@ -297,7 +300,7 @@
 
 
 
-#+nil
+;; #+nil
 (test ground-problem4
   (time
    (for-all ((problem
