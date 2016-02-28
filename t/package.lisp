@@ -257,7 +257,7 @@
                                (true a) (true b) (true c)))
                   (apply #'ground-problem (symbol-problem 'testproblem-adl)))))
 
-(test benchmark
+(test benchmark1
   (format t "this benchmark could take 5 sec.")
   (finishes
     (read-pddl (rel "t/test3/domain.pddl")))
@@ -266,7 +266,7 @@
      (apply #'ground-problem
             (read-pddl (rel "t/test3/p03.pddl"))))))
 
-(test benchmark-heavy
+(test benchmark2
   (finishes
     (read-pddl (rel "t/classical/nomystery-opt11-strips/domain.pddl"))
     (read-pddl (rel "t/classical/nomystery-opt11-strips/p17.pddl")))
@@ -297,6 +297,32 @@
    (time
     (apply #'ground-problem (symbol-problem 'transport-l10-t1-p9---int100n150-m25---int100c110---s1---e0)))))
 
+(test benchmark3
+  (finishes
+    (read-pddl (rel "t/classical/visitall-sat14-strips/domain.pddl"))
+    (read-pddl (rel "t/classical/visitall-sat14-strips/pfile59.pddl")))
+  ;; cd /home/guicho/repos/lisp/pddl2/t/classical/visitall-sat14-strips
+  ;; time ~/repos/lisp/mwup/downward/translate/translate.py domain.pddl pfile59.pddl
+  ;; real	0m3.738s
+  ;; user	0m3.436s
+  ;; sys	0m0.068s
+  (format t "this benchmark could take about 6 sec.")
+  ;; initially
+  ;; Evaluation took:
+  ;;   89.741 seconds of real time
+  ;;   ...
+  ;;   before it was aborted by a non-local transfer of control.
+  ;; finally
+  ;; Evaluation took:
+  ;;   5.656 seconds of real time
+  ;;   5.344000 seconds of total run time (5.328000 user, 0.016000 system)
+  ;;   [ Run times consist of 0.072 seconds GC time, and 5.272 seconds non-GC time. ]
+  ;;   94.48% CPU
+  ;;   16,970,251,797 processor cycles
+  ;;   1,077,361,888 bytes consed
+  (finishes
+   (time
+    (apply #'ground-problem (symbol-problem 'grid-59)))))
 
 
 
