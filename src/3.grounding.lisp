@@ -60,7 +60,7 @@ fact-based-exploration3
                        *current-pathname*)
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
-  (format t "~%grounding a problem ~a" *current-pathname*)
+  (format t "~%grounding a problem ~a~%" *current-pathname*)
   (print (fact-based-exploration4 *init*)))
 
 ;; axioms are later
@@ -76,10 +76,12 @@ fact-based-exploration3
             (incf c)
             (let ((log-new (floor (log c 2))))
               (when (< log log-new)
-                (format t "~&; ~ath consequtive ~a" c what)
+                (format t "~&; ~ath consequtive ~a~%" c what)
+                (finish-output)
                 (setf log log-new))))
           (progn
-            (format t "~&; switched to ~a" what)
+            (format t "~&; switched to ~a~%" what)
+            (finish-output)
             (setf prev what c 1 log 0))))))
 
 (defun p-a-mapping (actions)
