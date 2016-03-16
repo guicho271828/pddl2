@@ -61,7 +61,7 @@ fact-based-exploration3
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a~%" *current-pathname*)
-  (print (fact-based-exploration4 *init*)))
+  (print (fact-based-exploration *init*)))
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
@@ -89,12 +89,11 @@ have to find the actions that are affected"
                (walk-condition precond)))))
     plist))
 
-(defun fact-based-exploration4 (init)
+(defun fact-based-exploration (init)
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
   (let* ((fact-queue (make-trie init))
          (reachable (make-trie nil))
          (instantiated-actions (make-trie nil))
-         (p-a-mapping (p-a-mapping *actions*))
          (l (log-logger)))
     (macrolet ((enqueue (thing queue)
                  `(progn (push-trie ,thing ,queue)
@@ -105,8 +104,7 @@ have to find the actions that are affected"
       (iter (while queue)
             (for new = (dequeue fact-queue))
             (push-trie new reachable)
-            (for gas = (ground-actions2 new p-a-mapping reachable))
-            (dolist (ga gas)
+            (dolist (ga (ground-actions new reachable))
               (push-trie ga instantiated-actions)
               (dolist (ae (add-effects (grounded-action-definition ga)))
                 (unless (trie-member ae reachable)
