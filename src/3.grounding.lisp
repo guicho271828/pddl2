@@ -68,8 +68,7 @@ fact-based-exploration3
 ;;         (remove-if-not (curry #'derivable reachable)
 ;;                        *axioms*))
 
-
-(defun p-a-mapping (actions)
+(defcached p-a-mapping (actions)
   "Walk over the preconditions, collecting the positive predicates (requiring some predicates to be true).
 Those requirements are tied to the action name, enabling a lookup from
 predicate -> action. This is useful when a new fact is introduced, and you
@@ -101,7 +100,7 @@ have to find the actions that are affected"
                (dequeue (queue)
                  `(multiple-value-bind (r1 r2) (pop-trie ,queue)
                     (prog1 r1 (setf ,queue r2) (funcall l :dequeue)))))
-      (iter (while queue)
+      (iter (while fact-queue)
             (for new = (dequeue fact-queue))
             (push-trie new reachable)
             (dolist (ga (ground-actions new reachable))
@@ -111,15 +110,14 @@ have to find the actions that are affected"
                   (enqueue ae fact-queue)))))
       (values reachable instantiated-actions))))
 
-
-(defun ground-actions4 (new-fact p-a-mapping reachable)
+(defun ground-actions (new-fact reachable)
   "Compute the set of actions enabled by new-fact"
   (flet ((parameters (action)
            (ematch action ((list* _ :parameters params _) params))))
    (ematch new-fact
      ((list* head args)
       (iter outer
-            (for (action . p-params) in (getf p-a-mapping head))
+            (for (action . p-params) in (action-requiring head))
             (for bindings = nil)
             (iter (for p in params)
                   (for o in args)
@@ -131,7 +129,6 @@ have to find the actions that are affected"
                         (push (cons p o) bindings))
                       (unless (eq p o) ; when it is a constant, it should be eq to the argument.
                         (in outer (next-iteration)))))
-            ;; (print bindings)
             (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
             ;; some arguments are partially grounded.
             ;; For example, ?X of (move ?X ?Y) may be curried here.
@@ -141,20 +138,19 @@ have to find the actions that are affected"
             ;; ground-actions are partial, the results are also partial.
             ;; thus, we have to restore the original arguments.
             (iter (for (action-name . args) in ground-action-skeletons)
-                  ;; (print action-name)
-                  ;; (print args)
                   (for remaining-binding = ; ((?Y . A))
                        (mapcar #'cons (parameters partial-action) args))
-                  ;; (print remaining-binding)
                   (for whole-binding = ; ((?X . C) (?Y . A))
                        (append bindings remaining-binding))
-                  ;; (print whole-binding)
                   (in outer
                       (collect
                           (cons action-name
                                 (iter (for p in (parameters action))
                                       (collect (cdr (assoc p whole-binding)))))))))))))
 
+
+(defun action-requiring (predicate-head)
+  (getf (p-a-mapping *actions*) predicate-head))
 
 ;;; extract the effect
 
