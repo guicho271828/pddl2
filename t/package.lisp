@@ -316,7 +316,7 @@
 
 
 
-;; #+nil
+#+nil
 (test ground-problem4
   ;; test all problems
   (time
