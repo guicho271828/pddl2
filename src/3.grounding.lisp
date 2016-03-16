@@ -68,26 +68,6 @@ fact-based-exploration3
 ;;         (remove-if-not (curry #'derivable reachable)
 ;;                        *axioms*))
 
-(defcached p-a-mapping (actions)
-  "Walk over the preconditions, collecting the positive predicates (requiring some predicates to be true).
-Those requirements are tied to the action name, enabling a lookup from
-predicate -> action. This is useful when a new fact is introduced, and you
-have to find the actions that are affected"
-  (let (plist)
-    (iter (for a in actions)
-          (ematch a
-            ((list* '*goal* _)) ; ignore
-            ((list* (not '*goal*) :parameters _ :precondition precond _)
-             (labels ((walk-condition (condition)
-                        (ematch condition
-                          ((list* (op _) conditions)
-                           (map nil #'walk-condition conditions))
-                          ((list 'not _)) ; ignored
-                          ((list* head params)
-                           (push (cons a params) (getf plist head))))))
-               (walk-condition precond)))))
-    plist))
-
 (defun fact-based-exploration (init)
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
   (let* ((fact-queue (make-trie init))
@@ -148,9 +128,28 @@ have to find the actions that are affected"
                                 (iter (for p in (parameters action))
                                       (collect (cdr (assoc p whole-binding)))))))))))))
 
-
 (defun action-requiring (predicate-head)
   (getf (p-a-mapping *actions*) predicate-head))
+
+(defcached p-a-mapping (actions)
+  "Walk over the preconditions, collecting the positive predicates (requiring some predicates to be true).
+Those requirements are tied to the action name, enabling a lookup from
+predicate -> action. This is useful when a new fact is introduced, and you
+have to find the actions that are affected"
+  (let (plist)
+    (iter (for a in actions)
+          (ematch a
+            ((list* '*goal* _)) ; ignore
+            ((list* (not '*goal*) :parameters _ :precondition precond _)
+             (labels ((walk-condition (condition)
+                        (ematch condition
+                          ((list* (op _) conditions)
+                           (map nil #'walk-condition conditions))
+                          ((list 'not _)) ; ignored
+                          ((list* head params)
+                           (push (cons a params) (getf plist head))))))
+               (walk-condition precond)))))
+    plist))
 
 ;;; extract the effect
 
