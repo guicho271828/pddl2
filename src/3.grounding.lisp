@@ -86,14 +86,14 @@ fact-based-exploration3
       (iter (while fact-queue)
             (for new = (dequeue fact-queue))
             (push-trie new reachable)
-            (dolist (ga (ground-actions new reachable))
+            (dolist (ga (ground-new-actions new reachable))
               (push-trie ga instantiated-actions)
               (dolist (ae (add-effects (grounded-action-definition ga)))
                 (unless (trie-member ae reachable)
                   (enqueue ae fact-queue)))))
       (values reachable instantiated-actions))))
 
-(defun ground-actions (new-fact reachable)
+(defun ground-new-actions (new-fact reachable)
   "Compute the set of actions enabled by new-fact"
   (flet ((parameters (action)
            (ematch action ((list* _ :parameters params _) params))))

@@ -125,3 +125,18 @@
            (~test-parameter head ps (cdr found))
            t)))))
 
+
+(defun ground-actions (action reachable)
+  "Instantiate all ground actions that are applicable to the given reachable set of facts"
+  (%applicable-bindings action reachable nil))
+
+(defun %applicable-bindings (action reachable bindings)
+  (match action
+    ((list* name :parameters nil _)
+     (list (cons name (reverse bindings))))
+    (_
+     (iter (for (o . type) in *objects*)
+           ;; ignore type
+           (let ((partial (bind-action1 action o)))
+             (when (check-action partial reachable)
+               (appending (%applicable-bindings partial reachable (cons o bindings)))))))))
