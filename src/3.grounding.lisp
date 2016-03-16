@@ -60,47 +60,29 @@ fact-based-exploration3
                        *current-pathname*)
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
-  (format t "~%grounding a problem ~a" *current-pathname*)
-  (print (fact-based-exploration3 *init*)))
+  (format t "~%grounding a problem ~a~%" *current-pathname*)
+  (print (fact-based-exploration4 *init*)))
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
 ;;         (remove-if-not (curry #'derivable reachable)
 ;;                        *axioms*))
 
-(defun log-logger (what)
-  (let ((c 0) (log 0))
-    (lambda ()
-      (incf c)
-      (let ((log-new (floor (log c 2))))
-        (when (< log log-new)
-          (format t "~&; ~ath ~a" c what)
-          (setf log log-new))))))
-
-(defun fact-based-exploration3 (init)
-  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
-  (let* ((queue (make-trie init))
-         (reachable (make-trie nil))
-         (instantiated-actions (make-trie nil))
-         (p-a-mapping (p-a-mapping *actions*))
-         (e (log-logger :enqueue))
-         (d (log-logger :dequeue)))
-    (flet ((enqueue (thing)
-             (push-trie thing queue)
-             (funcall e))
-           (dequeue ()
-             (multiple-value-bind (r1 r2) (pop-trie queue)
-               (prog1 r1 (setf queue r2) (funcall d)))))
-      (iter (while queue)
-            (for new = (dequeue))
-            (push-trie new reachable)
-            (for gas = (ground-actions2 new p-a-mapping reachable))
-            (dolist (ga gas)
-              (push-trie ga instantiated-actions)
-              (dolist (ae (add-effects (grounded-action-definition ga)))
-                (unless (trie-member ae reachable)
-                  (enqueue ae)))))
-      (values reachable instantiated-actions))))
+(defun log-logger ()
+  (let ((c 1) (log 0) prev)
+    (lambda (what)
+      (if (eq prev what)
+          (progn
+            (incf c)
+            (let ((log-new (floor (log c 2))))
+              (when (< log log-new)
+                (format t "~&; ~ath consequtive ~a~%" c what)
+                (finish-output)
+                (setf log log-new))))
+          (progn
+            (format t "~&; switched to ~a~%" what)
+            (finish-output)
+            (setf prev what c 1 log 0))))))
 
 (defun p-a-mapping (actions)
   (let (plist)
@@ -118,52 +100,29 @@ fact-based-exploration3
                (walk-condition precond)))))
     plist))
 
-(defun ground-actions2 (new-fact p-a-mapping reachable)
-  "Compute the set of actions enabled by new-fact"
-
-   (ematch new-fact
-     ((list* head args)
-      (iter outer
-            (for (action . params) in (getf p-a-mapping head))
-            ;; (print args)
-            ;; (print params)
-            (for bindings = nil)
-            (iter (for p in params)
-                  (for o in args)
-                  (if (variablep p) ; params may contain constants.
-                      (if-let ((binding (assoc p bindings)))
-                        ;; a parameter can appear twice e.g.: (pred ?X ?Y ?X)
-                        (unless (eq o (cdr binding)) ; in that case, it should be eq to the established binding.
-                          (in outer (next-iteration)))
-                        (push (cons p o) bindings))
-                      (unless (eq p o) ; when it is a constant, it should be eq to the argument.
-                        (in outer (next-iteration)))))
-            ;; (print bindings)
-            (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
-            ;; some arguments are partially grounded.
-            ;; For example, ?X of (move ?X ?Y) may be curried here.
-            (for ground-action-skeletons = (ground-actions partial-action reachable))
-            ;; (print ground-action-skeletons)
-            ;; ((move A) (move B)) --- since the parameters given to
-            ;; ground-actions are partial, the results are also partial.
-            ;; thus, we have to restore the original arguments.
-            (iter (for (action-name . args) in ground-action-skeletons)
-                  ;; (print action-name)
-                  ;; (print args)
-                  (for remaining-binding = ; ((?Y . A))
-                       (mapcar #'cons
-                               (ematch partial-action ((list* _ :parameters params _) params))
-                               args))
-                  ;; (print remaining-binding)
-                  (for whole-binding = ; ((?X . C) (?Y . A))
-                       (append bindings remaining-binding))
-                  ;; (print whole-binding)
-                  (in outer
-                      (collect
-                          (cons action-name
-                                (iter (for p in (ematch action ((list* _ :parameters params _) params)))
-                                      (collect (cdr (assoc p whole-binding))))))))))))
-
+(defun fact-based-exploration4 (init)
+  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
+  (let* ((queue (make-trie init))
+         (reachable (make-trie nil))
+         (instantiated-actions (make-trie nil))
+         (p-a-mapping (p-a-mapping *actions*))
+         (l (log-logger)))
+    (flet ((enqueue (thing)
+             (push-trie thing queue)
+             (funcall l :enqueue))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2) (funcall l :dequeue)))))
+      (iter (while queue)
+            (for new = (dequeue))
+            (push-trie new reachable)
+            (for gas = (ground-actions2 new p-a-mapping reachable))
+            (dolist (ga gas)
+              (push-trie ga instantiated-actions)
+              (dolist (ae (add-effects (grounded-action-definition ga)))
+                (unless (trie-member ae reachable)
+                  (enqueue ae)))))
+      (values reachable instantiated-actions))))
 
 (defun bind-action (action binding)
   "binding : (param . obj)"
@@ -325,14 +284,14 @@ fact-based-exploration3
   "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
   (let* ((queue (make-trie init))
          (reachable (make-trie nil))
-         (instantiated-actions (make-trie nil)))
+         (instantiated-actions (make-trie nil))
+         (l (log-logger)))
     (flet ((enqueue (thing)
              (push-trie thing queue)
-             (log-logger :enqueue))
+             (funcall l :enqueue))
            (dequeue ()
              (multiple-value-bind (r1 r2) (pop-trie queue)
-               (prog1 r1 (setf queue r2)
-                      (log-logger :dequeue)))))
+               (prog1 r1 (setf queue r2) (funcall l :dequeue)))))
       (iter (while queue)
             (push-trie (dequeue) reachable)
             (for gas = (mappend (lambda (a)
@@ -350,15 +309,15 @@ fact-based-exploration3
   (let* ((queue (make-trie init))
          (reachable (make-trie nil))
          (instantiated-actions (make-trie nil))
-         (alist (make-predicate-action-map)))
+         (alist (make-predicate-action-map))
+         (l (log-logger)))
     (print alist)
     (flet ((enqueue (thing)
              (push-trie thing queue)
-             (log-logger :enqueue))
+             (funcall l :enqueue))
            (dequeue ()
              (multiple-value-bind (r1 r2) (pop-trie queue)
-               (prog1 r1 (setf queue r2)
-                      (log-logger :dequeue)))))
+               (prog1 r1 (setf queue r2) (funcall l :dequeue)))))
       (iter (while queue)
             (for new = (dequeue))
             (push-trie new reachable)
@@ -414,3 +373,74 @@ fact-based-exploration3
            (let ((partial (bind-action1 action o)))
              (when (check-action partial reachable)
                (appending (%applicable-bindings partial reachable (cons o bindings)))))))))
+
+
+(defun fact-based-exploration3 (init)
+  "cf. Exhibiting Knowledge in Planning Problems to Minimize State Encoding Length, Edelkamp, Helmert"
+  (let* ((queue (make-trie init))
+         (reachable (make-trie nil))
+         (instantiated-actions (make-trie nil))
+         (p-a-mapping (p-a-mapping *actions*))
+         (l (log-logger)))
+    (flet ((enqueue (thing)
+             (push-trie thing queue)
+             (funcall l :enqueue))
+           (dequeue ()
+             (multiple-value-bind (r1 r2) (pop-trie queue)
+               (prog1 r1 (setf queue r2) (funcall l :dequeue)))))
+      (iter (while queue)
+            (for new = (dequeue))
+            (push-trie new reachable)
+            (for gas = (ground-actions2 new p-a-mapping reachable))
+            (dolist (ga gas)
+              (push-trie ga instantiated-actions)
+              (dolist (ae (add-effects (grounded-action-definition ga)))
+                (unless (trie-member ae reachable)
+                  (enqueue ae)))))
+      (values reachable instantiated-actions))))
+
+(defun ground-actions2 (new-fact p-a-mapping reachable)
+  "Compute the set of actions enabled by new-fact"
+
+   (ematch new-fact
+     ((list* head args)
+      (iter outer
+            (for (action . params) in (getf p-a-mapping head))
+            ;; (print args)
+            ;; (print params)
+            (for bindings = nil)
+            (iter (for p in params)
+                  (for o in args)
+                  (if (variablep p) ; params may contain constants.
+                      (if-let ((binding (assoc p bindings)))
+                        ;; a parameter can appear twice e.g.: (pred ?X ?Y ?X)
+                        (unless (eq o (cdr binding)) ; in that case, it should be eq to the established binding.
+                          (in outer (next-iteration)))
+                        (push (cons p o) bindings))
+                      (unless (eq p o) ; when it is a constant, it should be eq to the argument.
+                        (in outer (next-iteration)))))
+            ;; (print bindings)
+            (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
+            ;; some arguments are partially grounded.
+            ;; For example, ?X of (move ?X ?Y) may be curried here.
+            (for ground-action-skeletons = (ground-actions partial-action reachable))
+            ;; (print ground-action-skeletons)
+            ;; ((move A) (move B)) --- since the parameters given to
+            ;; ground-actions are partial, the results are also partial.
+            ;; thus, we have to restore the original arguments.
+            (iter (for (action-name . args) in ground-action-skeletons)
+                  ;; (print action-name)
+                  ;; (print args)
+                  (for remaining-binding = ; ((?Y . A))
+                       (mapcar #'cons
+                               (ematch partial-action ((list* _ :parameters params _) params))
+                               args))
+                  ;; (print remaining-binding)
+                  (for whole-binding = ; ((?X . C) (?Y . A))
+                       (append bindings remaining-binding))
+                  ;; (print whole-binding)
+                  (in outer
+                      (collect
+                          (cons action-name
+                                (iter (for p in (ematch action ((list* _ :parameters params _) params)))
+                                      (collect (cdr (assoc p whole-binding))))))))))))
