@@ -70,6 +70,10 @@ fact-based-exploration3
 
 
 (defun p-a-mapping (actions)
+  "Walk over the preconditions, collecting the positive predicates (requiring some predicates to be true).
+Those requirements are tied to the action name, enabling a lookup from
+predicate -> action. This is useful when a new fact is introduced, and you
+have to find the actions that are affected"
   (let (plist)
     (iter (for a in actions)
           (ematch a

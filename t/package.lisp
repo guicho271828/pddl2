@@ -328,6 +328,7 @@
 
 ;; #+nil
 (test ground-problem4
+  ;; test all problems
   (time
    (for-all ((problem
               (with-hash-table-iterator (it *problem-table*)
