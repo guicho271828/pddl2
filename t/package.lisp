@@ -321,8 +321,9 @@
   ;;   16,970,251,797 processor cycles
   ;;   1,077,361,888 bytes consed
   (finishes
-   (time
-    (apply #'ground-problem (symbol-problem 'grid-59)))))
+    (print
+     (time
+      (apply #'ground-problem (symbol-problem 'grid-59))))))
 
 
 

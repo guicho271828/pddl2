@@ -61,7 +61,10 @@ fact-based-exploration3
   ;; grounding target: predicates, actions, axioms
   ;; does some reachability analysis based on relaxed planning graph
   (format t "~%grounding a problem ~a~%" *current-pathname*)
-  (print (fact-based-exploration *init*)))
+  (fact-based-exploration *init*)
+  ;; (print 
+  ;;  (fact-based-exploration *init*))
+  )
 
 ;; axioms are later
 ;; (mapcar (compose #'enqueue #')
@@ -99,7 +102,7 @@ fact-based-exploration3
       (iter outer
             (for (action . p-params) in (action-requiring head))
             (for bindings = nil)
-            (iter (for p in params)
+            (iter (for p in p-params)
                   (for o in args)
                   (if (variablep p) ; params may contain constants.
                       (if-let ((binding (assoc p bindings)))
