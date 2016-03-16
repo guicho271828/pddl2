@@ -306,20 +306,9 @@
   ;; real	0m3.738s
   ;; user	0m3.436s
   ;; sys	0m0.068s
-  (format t "this benchmark could take about 6 sec.")
-  ;; initially
-  ;; Evaluation took:
-  ;;   89.741 seconds of real time
-  ;;   ...
-  ;;   before it was aborted by a non-local transfer of control.
-  ;; finally
-  ;; Evaluation took:
-  ;;   5.656 seconds of real time
-  ;;   5.344000 seconds of total run time (5.328000 user, 0.016000 system)
-  ;;   [ Run times consist of 0.072 seconds GC time, and 5.272 seconds non-GC time. ]
-  ;;   94.48% CPU
-  ;;   16,970,251,797 processor cycles
-  ;;   1,077,361,888 bytes consed
+  (format t "this benchmark could take about 300 sec.")
+  ;; 03b4bc6
+  ;; 273.959 seconds of real time
   (finishes
     (print
      (time
