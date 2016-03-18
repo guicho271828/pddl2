@@ -142,6 +142,16 @@
                                                static-effects
                                                conditional-effect-pairs)))))))
 
+(defun free-variables (condition)
+  (match condition
+    ((list* (or 'and 'or 'imply 'not) rest)
+     (reduce #'union (mapcar #'free-variables rest)))
+    ((list (or 'exists 'forall) params quantified-body)
+     (set-difference (free-variables quantified-body)
+                     (mapcar #'first (parse-typed-list params t))))
+    ((list* _ params)
+     (remove-if-not #'variablep params))))
+
 (defun enumerate-quantifier (params quantified-body)
   "Compiles the body of FORALL and EXISTS"
   (let* ((params (parse-typed-list params t))
@@ -175,26 +185,30 @@
      `(or ,@(enumerate-quantifier params quantified-body))))
     ((list 'imply lhs rhs)
      `(or (not ,lhs) (and ,lhs ,rhs)))
-    ((list 'not _)
-     (compile-negative-condition condition))
+    ((list 'not condition)
+     ;; push negation inwards
+     (negate-condition condition))
+    ((list* (or 'not 'forall 'exists 'imply) _)
+     (error "syntax error in ~a" condition))
     (_
      condition)))
 
-(defun compile-negative-condition (condition)
-  "Compile NOT AND, NOT OR, NOT FORALL, NOT EXISTS, NOT IMPLY to the positive form."
+(defun negate-condition (condition)
   (ematch condition
-    ((list 'not (list* 'and rest))
+    ((list* 'and rest)
      (compile-adl-condition `(or ,@(mapcar (lambda (x) `(not ,x)) rest))))
-    ((list 'not (list* 'or rest))
+    ((list* 'or rest)
      (compile-adl-condition `(and ,@(mapcar (lambda (x) `(not ,x)) rest))))
-    ((list 'not (list 'forall params quantified-body))
+    ((list 'forall params quantified-body)
      (compile-adl-condition `(exists ,params (not ,quantified-body))))
-    ((list 'not (list 'exists params quantified-body))
+    ((list 'exists params quantified-body)
      (compile-adl-condition `(forall ,params (not ,quantified-body))))
-    ((list 'not (list 'imply lhs rhs))
+    ((list 'imply lhs rhs)
      (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
-    ((list 'not _)
-     condition)))
+    ((list* (or 'not 'forall 'exists 'imply) _)
+     (error "syntax error in ~a" condition))
+    (_
+     `(not ,condition))))
 
 (defun parse-effect (body)
   "Extract WHEN, compile FORALL, and flatten AND tree."
@@ -219,15 +233,13 @@
                               "WHEN cannot contain further WHEN: (WHEN <GD> <COND-EFFECT>")
                       (push (cons simple-condition simple-effect)
                             conditional-effect-pairs))))
-                 ((list* 'when _)
-                  (error "syntax error in ~a" body))
                  ((list (or 'assign 'increase 'decrease 'scale-up 'scale-down) _ _)
                   (push body fluents))
-                 ((list* (or 'assign 'increase 'decrease 'scale-up 'scale-down) _)
-                  (error "syntax error in ~a" body))
-                 ((list 'not (list* name args))
+                 ((list 'not (list* _ _))
                   (pushnew body del :test #'equalp))
-                 ((list* name args)
+                 ((list* (or 'assign 'increase 'decrease 'scale-up 'scale-down 'when 'not) _)
+                  (error "syntax error in ~a" body))
+                 ((list* _ _)
                   (pushnew body add :test #'equalp)))))
       (rec body)
       (values `(and ,@del ,@add ,@fluents)
@@ -240,7 +252,7 @@
                                            `(and ,simple-effects ,effects)
                                            rest)
              (%flatten-conditional-effects `(and ,simple-precond
-                                                 ,(compile-negative-condition `(not ,condition)))
+                                                 ,(negate-condition `(not ,condition)))
                                            simple-effects
                                            rest)))
     (nil
