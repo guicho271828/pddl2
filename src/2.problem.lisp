@@ -188,6 +188,8 @@
     ((list 'not _)
      ;; push negation inwards
      (compile-negative-condition condition))
+    ((list* (or 'not 'forall 'exists 'imply) _)
+     (error "syntax error in ~a" condition))
     (_
      condition)))
 
