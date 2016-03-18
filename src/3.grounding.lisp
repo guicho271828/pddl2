@@ -101,17 +101,8 @@ fact-based-exploration3
      ((list* head args)
       (iter outer
             (for (action . p-params) in (action-requiring head))
-            (for bindings = nil)
-            (iter (for p in p-params)
-                  (for o in args)
-                  (if (variablep p) ; params may contain constants.
-                      (if-let ((binding (assoc p bindings)))
-                        ;; a parameter can appear twice e.g.: (pred ?X ?Y ?X)
-                        (unless (eq o (cdr binding)) ; in that case, it should be eq to the established binding.
-                          (in outer (next-iteration)))
-                        (push (cons p o) bindings))
-                      (unless (eq p o) ; when it is a constant, it should be eq to the argument.
-                        (in outer (next-iteration)))))
+            (for (values bindings success?) = (build-binding args p-params))
+            (unless success? (next-iteration))
             (for partial-action = (reduce #'nbind-action bindings :initial-value (copy-tree action)))
             ;; some arguments are partially grounded.
             ;; For example, ?X of (move ?X ?Y) may be curried here.
@@ -130,6 +121,19 @@ fact-based-exploration3
                           (cons action-name
                                 (iter (for p in (parameters action))
                                       (collect (cdr (assoc p whole-binding)))))))))))))
+
+(defun build-binding (args params)
+  (iter (for p in params)
+        (for o in args)
+        (if (variablep p) ; params may contain constants.
+            (if-let ((binding (assoc p bindings)))
+              ;; a parameter can appear twice e.g.: (pred ?X ?Y ?X)
+              (unless (eq o (cdr binding)) ; in that case, it should be eq to the established binding.
+                (return))
+              (collect (cons p o) into bindings))
+            (unless (eq p o) ; when it is a constant, it should be eq to the argument.
+              (return)))
+        (finally (return (values bindings t)))))
 
 (defun action-requiring (predicate-head)
   (getf (p-a-mapping *actions*) predicate-head))
