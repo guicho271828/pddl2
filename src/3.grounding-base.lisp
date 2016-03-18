@@ -8,10 +8,10 @@
             (incf c)
             (let ((log-new (floor (log c 2))))
               (when (< log log-new)
-                (format t "~&; ~ath consequtive ~a~%" c what)
+                ;; (format t "~&; ~ath consequtive ~a~%" c what)
                 (setf log log-new))))
           (progn
-            (format t "~&; switched to ~a~%" what)
+            ;; (format t "~&; switched to ~a~%" what)
             (setf prev what c 1 log 0))))))
 
 (defun bind-action (action binding)
