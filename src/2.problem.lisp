@@ -205,6 +205,8 @@
      (compile-adl-condition `(forall ,params (not ,quantified-body))))
     ((list 'imply lhs rhs)
      (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
+    ((list* (or 'not 'forall 'exists 'imply) _)
+     (error "syntax error in ~a" condition))
     (_
      `(not ,condition))))
 
