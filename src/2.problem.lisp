@@ -185,29 +185,28 @@
      `(or ,@(enumerate-quantifier params quantified-body))))
     ((list 'imply lhs rhs)
      `(or (not ,lhs) (and ,lhs ,rhs)))
-    ((list 'not _)
+    ((list 'not condition)
      ;; push negation inwards
-     (compile-negative-condition condition))
+     (negate-condition condition))
     ((list* (or 'not 'forall 'exists 'imply) _)
      (error "syntax error in ~a" condition))
     (_
      condition)))
 
-(defun compile-negative-condition (condition)
-  "Compile NOT AND, NOT OR, NOT FORALL, NOT EXISTS, NOT IMPLY to the positive form."
+(defun negate-condition (condition)
   (ematch condition
-    ((list 'not (list* 'and rest))
+    ((list* 'and rest)
      (compile-adl-condition `(or ,@(mapcar (lambda (x) `(not ,x)) rest))))
-    ((list 'not (list* 'or rest))
+    ((list* 'or rest)
      (compile-adl-condition `(and ,@(mapcar (lambda (x) `(not ,x)) rest))))
-    ((list 'not (list 'forall params quantified-body))
+    ((list 'forall params quantified-body)
      (compile-adl-condition `(exists ,params (not ,quantified-body))))
-    ((list 'not (list 'exists params quantified-body))
+    ((list 'exists params quantified-body)
      (compile-adl-condition `(forall ,params (not ,quantified-body))))
-    ((list 'not (list 'imply lhs rhs))
+    ((list 'imply lhs rhs)
      (compile-adl-condition `(not (or (not ,lhs) (and ,lhs ,rhs)))))
-    ((list 'not _)
-     condition)))
+    (_
+     `(not ,condition))))
 
 (defun parse-effect (body)
   "Extract WHEN, compile FORALL, and flatten AND tree."
@@ -253,7 +252,7 @@
                                            `(and ,simple-effects ,effects)
                                            rest)
              (%flatten-conditional-effects `(and ,simple-precond
-                                                 ,(compile-negative-condition `(not ,condition)))
+                                                 ,(negate-condition `(not ,condition)))
                                            simple-effects
                                            rest)))
     (nil
