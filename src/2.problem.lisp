@@ -186,6 +186,7 @@
     ((list 'imply lhs rhs)
      `(or (not ,lhs) (and ,lhs ,rhs)))
     ((list 'not _)
+     ;; push negation inwards
      (compile-negative-condition condition))
     (_
      condition)))
