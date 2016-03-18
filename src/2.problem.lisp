@@ -142,6 +142,16 @@
                                                static-effects
                                                conditional-effect-pairs)))))))
 
+(defun free-variables (condition)
+  (match condition
+    ((list* (or 'and 'or 'imply 'not) rest)
+     (reduce #'union (mapcar #'free-variables rest)))
+    ((list (or 'exists 'forall) params quantified-body)
+     (set-difference (free-variables quantified-body)
+                     (mapcar #'first (parse-typed-list params t))))
+    ((list* _ params)
+     (remove-if-not #'variablep params))))
+
 (defun enumerate-quantifier (params quantified-body)
   "Compiles the body of FORALL and EXISTS"
   (let* ((params (parse-typed-list params t))
