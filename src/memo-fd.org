@@ -1,0 +1,43 @@
+
+Fast Downward translator works as follows (see normalize.py):
+
+1. Remove universal quantifications from conditions.
+
+ Replace, in a top-down fashion, <forall(vars, phi)> by <not(not-all-phi)>,
+ where <not-all-phi> is a new axiom.
+
+ <not-all-phi> is defined as <not(forall(vars,phi))>, which is of course
+ translated to NNF. The parameters of the new axioms are exactly the free
+ variables of <forall(vars, phi)>.
+
+2. Pull disjunctions to the root of the condition.
+
+ After removing universal quantifiers, the (k-ary generalization of the)
+ following rules suffice for doing that:
+ (1) or(phi, or(psi, psi'))      ==  or(phi, psi, psi')
+ (2) exists(vars, or(phi, psi))  ==  or(exists(vars, phi), exists(vars, psi))
+ (3) and(phi, or(psi, psi'))     ==  or(and(phi, psi), and(phi, psi'))
+
+3. Split conditions at the outermost disjunction.
+
+4. Pull existential quantifiers out of conjunctions and group them.
+
+ After removing universal quantifiers and creating the disjunctive form,
+ only the following (representatives of) rules are needed:
+ (1) exists(vars, exists(vars', phi))  ==  exists(vars + vars', phi)
+ (2) and(phi, exists(vars, psi))       ==  exists(vars, and(phi, psi)),
+       if var does not occur in phi as a free variable.
+
+5. Drop existential quantifiers from axioms, turning them
+      into parameters.
+
+6. Drop existential quantifiers from action preconditions,
+      turning them into action parameters (that don't form part of the
+      name of the action).
+
+7. Eliminate existential quantifiers from effect conditions
+
+ For effect conditions, we replace "when exists(x, phi) then e" with
+ "forall(x): when phi then e.
+ Combine Steps [1], [2], [3], [4], [5] and do some additional verification
+ that the task makes sense.
