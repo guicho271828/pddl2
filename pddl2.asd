@@ -32,6 +32,7 @@
                  (:file "1.read-file")
                  (:file "2.domain")
                  (:file "2.problem")
+                 (:file "3.grounding-base")
                  (:file "3.grounding"))))
   :description "Simpler PDDL (Planning Domain Description Language) parser in CL"
   :in-order-to ((test-op (test-op :pddl2.test))))
