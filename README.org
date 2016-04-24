@@ -1,9 +1,28 @@
 
 * Pddl2  - Simpler PDDL (Planning Domain Description Language) parser in CL
 
-second attempt
+** Main Interface
 
-** Usage
++ function /read-pddl pathname/ :: read and evaluate the pddl file.
++ macro /define (category name)/ &body /body/ :: this expands the pddl
+     definition and evaluates to the parsed results. Depending on CATEGORY,
+     parsed results are also stored into =(symbol-domain name)= or
+     =(symbol-problem name)=. (cf. =lisp-namespace=)
++ function /parse-domain body/ :: function version of =define= macro.
++ function /parse-problem body/ :: function version of =define= macro.
+
+Domain parser literally does nothing other than parsing the PDDL and stores the list.
+Problem parser, in contrast, performs various normalizations on the action/axiom preconditions/effects. For example:
+
++ Adding predicates representing an object type
++ ADL->STRIPS compilation:
+  + action/axiom preconditions are compiled into Negation Normal Form (NNF)
+    + =FORALL= is enumerated as conjunctions (as opposed to axiom-based method in FD)
+    + =EXISTS= is enumerated as disjunctions
+    + Expands complex negations such as =(NOT (AND ...))= into NNF
+    + Expandd conditional effects
+
+It doesnt do the grounding, however.
 
 ** Dependencies
 
