@@ -297,6 +297,7 @@
    (time
     (apply #'ground-problem (symbol-problem 'transport-l10-t1-p9---int100n150-m25---int100c110---s1---e0)))))
 
+#+nil
 (test benchmark3
   (finishes
     (read-pddl (rel "t/classical/visitall-sat14-strips/domain.pddl"))
