@@ -10,6 +10,9 @@
      =(symbol-problem name)=. (cf. =lisp-namespace=)
 + function /parse-domain body/ :: function version of =define= macro.
 + function /parse-problem body/ :: function version of =define= macro.
++ function /symbol-problem sym/, /symbol-domain sym/ :: setf-able
+     function. Other functions (e.g. problem-boundp) are available
+     (cf. =lisp-namespace=)
 
 Domain parser literally does nothing other than parsing the PDDL and stores the list.
 Problem parser, in contrast, performs various normalizations on the action/axiom preconditions/effects. For example:
